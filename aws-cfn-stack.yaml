@@ -527,6 +527,7 @@ Resources:
                         Action:
                             - 'sts:AssumeRole'
             Path: '/'
+            # TODO: This could be cleaned up - not sure if every single one is required:
             Policies:
                 -   PolicyName: logs
                     PolicyDocument:
@@ -612,6 +613,8 @@ Resources:
                                     - ecr:CompleteLayerUpload
                                 Resource: '*'
                                 Effect: Allow
+            ManagedPolicyArns:
+                - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
 
     # CLI: aws codebuild list-projects
     ResCodeBuildProject:

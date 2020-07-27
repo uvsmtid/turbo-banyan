@@ -6,10 +6,10 @@ This is a demo service with:
 *   MySQL backend database
 *   AWS CloudFormation to provision its CI/CD pipeline
 
-There are three sections below (`A`, `B`, `C`) from trivial to complex:
+Follow sections from trivial to complex:
 *   **`A`**: [local build and run (Maven)](#A)
 *   **`B`**: [local build and run (Docker)](#B)
-*   **`C`**: [spawning cloud CI/CD pipeline (AWS CloudFormation)](#C)
+*   **`C`**: [spawn cloud CI/CD pipeline (AWS CloudFormation)](#C)
 
 You may want to jump directly to `C`.
 
