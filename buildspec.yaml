@@ -1,0 +1,52 @@
+# AWS build spec: https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html
+
+version: 0.2
+
+phases:
+
+    install:
+        runtime-versions:
+            java: corretto8
+            # TODO: is this required (if mvn package already succeeds?
+            docker: 18
+
+    pre_build:
+        commands:
+
+            - echo before pwd
+            - pwd
+
+            - echo before whoami
+            - whoami
+
+            # TODO: clean up - for debug only
+            - echo before find
+            - find /root/.m2 -type d
+
+    build:
+        commands:
+
+            # show path to local repository:
+            - echo before mvn:evaluate
+            - mvn --activate-profiles build-pipeline help:evaluate -Dexpression=settings.localRepository
+
+            - echo before mvn test
+            - mvn --activate-profiles build-pipeline test
+
+    post_build:
+        commands:
+
+            - echo before mvn package
+            - mvn --activate-profiles build-pipeline package
+
+artifacts:
+    files:
+        # TODO: clean up
+        #- target/turbo-banyan-student-service.jar
+        #- appspec.yaml
+        - imagedefinitions.json
+    discard-paths: yes
+
+cache:
+    paths:
+        - '/root/.m2/'

@@ -1,0 +1,745 @@
+# CLI: aws cloudformation describe-stacks
+
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: turbo-banyan-stack
+
+Metadata: {}
+
+Parameters:
+    ParRepositoryName:
+        Description: repository name
+        Type: String
+        Default: turbo-banyan
+    ParBranchName:
+        Description: branch name
+        Type: String
+        Default: develop
+    ParServiceName:
+        Type: String
+        Description: A human-readable name for the service.
+        Default: turbo-banyan-student-service
+    ParImageUrl:
+        Type: String
+        Description: The url of a docker image.
+        Default: 'docker.io/uvsmtid/turbo-banyan-student-service:latest'
+    ParContainerCpu:
+        Type: Number
+        Default: 512
+    ParContainerMemory:
+        Type: Number
+        Default: 1024
+    ParContainerPort:
+        Type: Number
+        Default: 8080
+        Description: The port number of the serivice inside the docker container.
+    ParDatabaseInstanceClass:
+        Type: String
+        Description: The ID of the second subnet to place the RDS instance into.
+        Default: db.t2.micro
+    ParDatabaseName:
+        Type: String
+        Description: The name of the database that is created within the database instance.
+        Default: turbo_banyan_database
+    ParDatabaseUsername:
+        Type: String
+        Description: The master user name for the database instance.
+        Default: turbo_banyan_username
+
+Mappings:
+    RegionMap:
+        # TODO: add mappings for other regions:
+        # TODO: Is this number important? Or can be anything?
+        'ap-southeast-1':
+            AMI: 'ami-7243e611'
+
+Conditions: {}
+
+Resources:
+
+    #######################################################################################################################
+    # secrets
+
+    ResDatabaseSecret:
+        Type: AWS::SecretsManager::Secret
+        Properties:
+            Name: !Ref ParDatabaseUsername
+            GenerateSecretString:
+                SecretStringTemplate: !Join ['', ['{"username": "', !Ref 'ParDatabaseUsername' ,'"}']]
+                GenerateStringKey: "password"
+                PasswordLength: 32
+                ExcludeCharacters: '"@/\'
+
+    #######################################################################################################################
+    # service cluster
+
+    ResECSCluster:
+        Type: AWS::ECS::Cluster
+
+    # TODO: Consider replacing by standard managed role
+    ResECSRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                    -   Effect: Allow
+                        Principal:
+                            Service:
+                                - ecs.amazonaws.com
+                        Action:
+                            - 'sts:AssumeRole'
+            Path: /
+            # TODO: try to replace by appropriate `ManagedPolicyArns`
+            Policies:
+                -   PolicyName: turbo-banyan-ecs-role
+                    PolicyDocument:
+                        Statement:
+                            -   Effect: Allow
+                                Action:
+                                    # Rules which allow ECS to attach network interfaces to instances
+                                    # on your behalf in order for awsvpc networking mode to work right
+                                    - 'ec2:AttachNetworkInterface'
+                                    - 'ec2:CreateNetworkInterface'
+                                    - 'ec2:CreateNetworkInterfacePermission'
+                                    - 'ec2:DeleteNetworkInterface'
+                                    - 'ec2:DeleteNetworkInterfacePermission'
+                                    - 'ec2:Describe*'
+                                    - 'ec2:DetachNetworkInterface'
+
+                                    # Rules which allow ECS to update load balancers on your behalf
+                                    # with the information sabout how to send traffic to your containers
+                                    - 'elasticloadbalancing:DeregisterInstancesFromLoadBalancer'
+                                    - 'elasticloadbalancing:DeregisterTargets'
+                                    - 'elasticloadbalancing:Describe*'
+                                    - 'elasticloadbalancing:RegisterInstancesWithLoadBalancer'
+                                    - 'elasticloadbalancing:RegisterTargets'
+                                Resource: '*'
+
+    # TODO: Consider replacing by standard managed role
+    ResECSTaskExecutionRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                    -   Effect: Allow
+                        Principal:
+                            Service:
+                                - ecs-tasks.amazonaws.com
+                        Action:
+                            - 'sts:AssumeRole'
+            Path: /
+            # TODO: try to replace by appropriate `ManagedPolicyArns`
+            Policies:
+                -   PolicyName: turbo-banyan-exec-role
+                    PolicyDocument:
+                        Statement:
+                            -   Effect: Allow
+                                Action:
+                                    # Allow the ECS Tasks to download images from ECR:
+                                    - ecr:GetAuthorizationToken
+                                    - ecr:BatchCheckLayerAvailability
+                                    - ecr:GetDownloadUrlForLayer
+                                    - ecr:BatchGetImage
+
+                                    # Allow the ECS tasks to upload logs to CloudWatch:
+                                    - logs:CreateLogStream
+                                    - logs:PutLogEvents
+                                Resource: '*'
+
+    ResTargetGroup:
+        Type: AWS::ElasticLoadBalancingV2::TargetGroup
+        Properties:
+            HealthCheckIntervalSeconds: 30
+            HealthCheckPath: '/actuator/health'
+            HealthCheckProtocol: HTTP
+            HealthCheckTimeoutSeconds: 5
+            HealthyThresholdCount: 3
+            UnhealthyThresholdCount: 3
+            TargetType: ip
+            Name: !Ref ParServiceName
+            Port: !Ref ParContainerPort
+            Protocol: HTTP
+            VpcId: !Ref ResVPC
+
+    ResLoadBalancerRule:
+        Type: AWS::ElasticLoadBalancingV2::ListenerRule
+        Properties:
+            Actions:
+                -   TargetGroupArn: !Ref ResTargetGroup
+                    Type: forward
+            Conditions:
+                -   Field: path-pattern
+                    Values:
+                        - '*'
+            ListenerArn: !Ref ResPublicLoadBalancerListener
+            Priority: 1
+
+    ResLogGroup:
+        Type: AWS::Logs::LogGroup
+        Properties:
+            LogGroupName: !Ref ParServiceName
+            RetentionInDays: 1
+
+    ResTaskDefinition:
+        Type: AWS::ECS::TaskDefinition
+        Properties:
+            Family: !Ref ParServiceName
+            Cpu: !Ref ParContainerCpu
+            Memory: !Ref ParContainerMemory
+            NetworkMode: awsvpc
+            RequiresCompatibilities:
+                # TODO: Provision EC2 instances yourself (instead of using FARGATE):
+                - FARGATE
+            ExecutionRoleArn: !Ref ResECSTaskExecutionRole
+            ContainerDefinitions:
+                -   Name: !Ref ParServiceName
+                    Cpu: !Ref ParContainerCpu
+                    Memory: !Ref ParContainerMemory
+                    Image: !Ref ParImageUrl
+                    PortMappings:
+                        -   ContainerPort: !Ref ParContainerPort
+                    LogConfiguration:
+                        LogDriver: awslogs
+                        Options:
+                            awslogs-group: !Ref ParServiceName
+                            awslogs-region: !Ref AWS::Region
+                            awslogs-stream-prefix: !Ref ParServiceName
+                    Environment:
+                        -   Name: SPRING_DATASOURCE_URL
+                            Value: !Join
+                                - ''
+                                -   - 'jdbc:mysql://'
+                                    - !GetAtt ResDatabaseInstance.Endpoint.Address
+                                    - ':'
+                                    - !GetAtt ResDatabaseInstance.Endpoint.Port
+                                    - '/'
+                                    - !Ref ParDatabaseName
+                        -   Name: SPRING_DATASOURCE_USERNAME
+                            Value: !Join
+                                - ''
+                                -   - '{{resolve:secretsmanager:'
+                                    - !Ref ResDatabaseSecret
+                                    - ':SecretString:username}}'
+                        -   Name: SPRING_DATASOURCE_PASSWORD
+                            Value: !Join
+                                - ''
+                                -   - '{{resolve:secretsmanager:'
+                                    - !Ref ResDatabaseSecret
+                                    - ':SecretString:password}}'
+
+    ResService:
+        Type: AWS::ECS::Service
+        DependsOn: ResLoadBalancerRule
+        Properties:
+            ServiceName: !Ref ParServiceName
+            Cluster: !Ref ResECSCluster
+            LaunchType: FARGATE
+            DeploymentConfiguration:
+                MaximumPercent: 200
+                MinimumHealthyPercent: 50
+            DesiredCount: 2
+            NetworkConfiguration:
+                AwsvpcConfiguration:
+                    AssignPublicIp: ENABLED
+                    SecurityGroups:
+                        - !Ref ResECSSecurityGroup
+                    Subnets:
+                        - !Ref ResPublicSubnet1
+                        - !Ref ResPublicSubnet2
+            TaskDefinition: !Ref ResTaskDefinition
+            LoadBalancers:
+                -   ContainerName: !Ref ParServiceName
+                    ContainerPort: !Ref ParContainerPort
+                    TargetGroupArn: !Ref ResTargetGroup
+
+    # NOTE: AWS CloudFormation deletes all automated snapshots during update (when changes are detected).
+    #       This is fine - it is CI/CD pipeline instance with throw-away data.
+    ResDatabaseInstance:
+        Type: AWS::RDS::DBInstance
+        Properties:
+            Engine: mysql
+            EngineVersion: 8.0.20
+            AllocatedStorage: 20
+            AvailabilityZone:
+                Fn::Select:
+                    - 0
+                    -   Fn::GetAZs:
+                            Ref: 'AWS::Region'
+            DBSubnetGroupName: !Ref ResDatabaseSubnetGroup
+            DBInstanceClass: !Ref ParDatabaseInstanceClass
+            DBName: !Ref ParDatabaseName
+            MasterUsername: !Ref ParDatabaseUsername
+            # NOTE: The the same secret is reused for master/root database password
+            #       (which should not be the case for production environment).
+            MasterUserPassword: !Join
+                - ''
+                -   - '{{resolve:secretsmanager:'
+                    - !Ref ResDatabaseSecret
+                    - ':SecretString:password}}'
+            PubliclyAccessible: false
+            VPCSecurityGroups:
+                - !Ref ResDatabaseSecurityGroup
+
+    SecretRDSInstanceAttachment:
+        Type: AWS::SecretsManager::SecretTargetAttachment
+        Properties:
+            SecretId: !Ref ResDatabaseSecret
+            TargetType: AWS::RDS::DBInstance
+            TargetId: !Ref ResDatabaseInstance
+
+    #######################################################################################################################
+    # network layout
+
+    # CLI: aws ec2 describe-vpcs
+    ResVPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: '17.17.0.0/16'
+
+    # CLI: aws ec2 describe-availability-zones
+    # CLI: aws ec2 describe-subnets
+    ResPublicSubnet1:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone:
+                Fn::Select:
+                    - 0
+                    -   Fn::GetAZs:
+                            Ref: 'AWS::Region'
+            VpcId: !Ref ResVPC
+            CidrBlock: '17.17.1.0/24'
+            MapPublicIpOnLaunch: true
+
+    ResPublicSubnet2:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone:
+                Fn::Select:
+                    - 1
+                    -   Fn::GetAZs:
+                            Ref: 'AWS::Region'
+            VpcId: !Ref ResVPC
+            CidrBlock: '17.17.2.0/24'
+            MapPublicIpOnLaunch: true
+
+    ResDatabasePrivateSubnet1:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone:
+                Fn::Select:
+                    - 0
+                    -   Fn::GetAZs:
+                            Ref: 'AWS::Region'
+            VpcId: !Ref ResVPC
+            CidrBlock: '17.17.11.0/24'
+            MapPublicIpOnLaunch: false
+
+    ResDatabasePrivateSubnet2:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone:
+                Fn::Select:
+                    - 1
+                    -   Fn::GetAZs:
+                            Ref: 'AWS::Region'
+            VpcId: !Ref ResVPC
+            CidrBlock: '17.17.12.0/24'
+            MapPublicIpOnLaunch: false
+
+    ResPublicLoadBalancer:
+        Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+        Properties:
+            # TODO: do we need ALB or NLB?
+            Type: application
+            Scheme: internet-facing
+            Subnets:
+                - !Ref ResPublicSubnet1
+                - !Ref ResPublicSubnet2
+            SecurityGroups:
+                - !Ref ResPublicLoadBalancerSecurityGroup
+
+    ResPublicLoadBalancerListener:
+        Type: AWS::ElasticLoadBalancingV2::Listener
+        DependsOn:
+            - ResPublicLoadBalancer
+        Properties:
+            DefaultActions:
+                -   TargetGroupArn: !Ref ResTargetGroup
+                    Type: forward
+            LoadBalancerArn: !Ref ResPublicLoadBalancer
+            Port: 80
+            Protocol: HTTP
+
+    ResDatabaseSubnetGroup:
+        Type: AWS::RDS::DBSubnetGroup
+        Properties:
+            DBSubnetGroupDescription: Subnet group for the RDS instance
+            DBSubnetGroupName: ResDatabaseSubnetGroup
+            SubnetIds:
+                - !Ref ResDatabasePrivateSubnet1
+                - !Ref ResDatabasePrivateSubnet2
+
+    #######################################################################################################################
+    # network routing
+
+    # CLI: aws ec2 describe-internet-gateways
+    ResInternetGateway:
+        Type: AWS::EC2::InternetGateway
+
+    ResGatewayAttachement:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            VpcId: !Ref ResVPC
+            InternetGatewayId: !Ref ResInternetGateway
+
+    # CLI: aws ec2 describe-route-tables
+    ResPublicRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId: !Ref ResVPC
+
+    # Route to Internet by default:
+    ResPublicRoute:
+        Type: AWS::EC2::Route
+        DependsOn: ResGatewayAttachement
+        Properties:
+            RouteTableId: !Ref ResPublicRouteTable
+            DestinationCidrBlock: '0.0.0.0/0'
+            GatewayId: !Ref ResInternetGateway
+
+    ResPublicSubnet1RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref ResPublicRouteTable
+            SubnetId: !Ref ResPublicSubnet1
+
+    ResPublicSubnet2RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref ResPublicRouteTable
+            SubnetId: !Ref ResPublicSubnet2
+
+    #######################################################################################################################
+    # network security
+
+    ResPublicLoadBalancerSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: access to the internet-facing load balancer
+            VpcId: !Ref ResVPC
+            SecurityGroupIngress:
+                -   CidrIp: 0.0.0.0/0
+                    # all protocols:
+                    IpProtocol: -1
+
+    ResECSSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: access to the ECS containers
+            VpcId: !Ref ResVPC
+
+    ResECSSecurityGroupIngressFromPublicALB:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            Description: Ingress from the public ALB
+            GroupId: !Ref ResECSSecurityGroup
+            # all protocols:
+            IpProtocol: -1
+            SourceSecurityGroupId: !Ref ResPublicLoadBalancerSecurityGroup
+
+    # TODO: Do we really need this?
+    ResECSSecurityGroupIngressFromSelf:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            Description: Ingress from other containers in the same security group
+            GroupId: !Ref ResECSSecurityGroup
+            # all protocols:
+            IpProtocol: -1
+            SourceSecurityGroupId: !Ref ResECSSecurityGroup
+
+    ResDatabaseSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Access to the RDS instance
+            VpcId: !Ref ResVPC
+
+    ResDatabaseSecurityGroupIngressFromECS:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            Description: Ingress from the ECS containers to the RDS instance
+            GroupId: !Ref ResDatabaseSecurityGroup
+            IpProtocol: -1
+            SourceSecurityGroupId: !Ref ResECSSecurityGroup
+
+    #######################################################################################################################
+    # pipeline
+
+    ResArtifactStore:
+        Type: AWS::S3::Bucket
+        Properties:
+            VersioningConfiguration:
+                Status: Enabled
+
+    # TODO: Consider replacing by standard managed role AWSCodeDeployRoleForECS
+    ResCodePipelineIAMRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    -   Effect: Allow
+                        Principal:
+                            Service:
+                                - codepipeline.amazonaws.com
+                                - codebuild.amazonaws.com
+                        Action:
+                            - 'sts:AssumeRole'
+            Path: '/'
+            Policies:
+                -   PolicyName: logs
+                    PolicyDocument:
+                        Version: '2012-10-17'
+                        Statement:
+                            -   Action:
+                                    - s3:GetObject
+                                    - s3:GetObjectVersion
+                                    - s3:GetBucketVersioning
+                                Resource: "*"
+                                Effect: Allow
+                            -   Action:
+                                    - s3:PutObject
+                                Resource:
+                                    - arn:aws:s3:::codepipeline*
+                                    - arn:aws:s3:::elasticbeanstalk*
+                                Effect: Allow
+                            -   Action:
+                                    - codecommit:CancelUploadArchive
+                                    - codecommit:GetBranch
+                                    - codecommit:GetCommit
+                                    - codecommit:GetUploadArchiveStatus
+                                    - codecommit:UploadArchive
+                                Resource: "*"
+                                Effect: Allow
+                            -   Action:
+                                    - codedeploy:CreateDeployment
+                                    - codedeploy:GetApplicationRevision
+                                    - codedeploy:GetDeployment
+                                    - codedeploy:GetDeploymentConfig
+                                    - codedeploy:RegisterApplicationRevision
+                                Resource: "*"
+                                Effect: Allow
+                            -   Action:
+                                    - elasticbeanstalk:*
+                                    - ec2:*
+                                    - elasticloadbalancing:*
+                                    - autoscaling:*
+                                    - cloudwatch:*
+                                    - s3:*
+                                    - sns:*
+                                    - cloudformation:*
+                                    - rds:*
+                                    - sqs:*
+                                    - ecs:*
+                                    - iam:PassRole
+                                Resource: "*"
+                                Effect: Allow
+                            -   Action:
+                                    - lambda:InvokeFunction
+                                    - lambda:ListFunctions
+                                Resource: "*"
+                                Effect: Allow
+                            -   Action:
+                                    - opsworks:CreateDeployment
+                                    - opsworks:DescribeApps
+                                    - opsworks:DescribeCommands
+                                    - opsworks:DescribeDeployments
+                                    - opsworks:DescribeInstances
+                                    - opsworks:DescribeStacks
+                                    - opsworks:UpdateApp
+                                    - opsworks:UpdateStack
+                                Resource: "*"
+                                Effect: Allow
+                            -   Action:
+                                    - codebuild:*
+                                Resource: "*"
+                                Effect: Allow
+                            -   Action:
+                                    - logs:CreateLogGroup
+                                    - logs:CreateLogStream
+                                    - logs:PutLogEvents
+                                Resource: '*'
+                                Effect: Allow
+
+    # CLI: aws codebuild list-projects
+    ResCodeBuildProject:
+        Type: AWS::CodeBuild::Project
+        Properties:
+            Name: turbo-banyan-project
+            ServiceRole: !GetAtt ResCodePipelineIAMRole.Arn
+            Artifacts:
+                Type: CODEPIPELINE
+            Environment:
+                Type: LINUX_CONTAINER
+                ComputeType: BUILD_GENERAL1_SMALL
+                Image: aws/codebuild/java:openjdk-8
+                PrivilegedMode: true
+            Source:
+                Type: CODEPIPELINE
+            Cache:
+                Type: LOCAL
+                Modes:
+                    - LOCAL_DOCKER_LAYER_CACHE
+                    - LOCAL_SOURCE_CACHE
+                    - LOCAL_CUSTOM_CACHE
+            TimeoutInMinutes: 10
+
+    # CLI: aws codepipeline list-pipelines
+    # CLI: aws codepipeline get-pipeline --name turbo-banyan-pipeline
+    ResCodePipeline:
+        DependsOn:
+            - ResEC2Instance1
+        Type: AWS::CodePipeline::Pipeline
+        Properties:
+            ArtifactStore:
+                Location: !Ref ResArtifactStore
+                Type: S3
+            RoleArn: !GetAtt ResCodePipelineIAMRole.Arn
+            Stages:
+                -   Name: Source
+                    Actions:
+                        -   Name: Source
+                            # TODO: convert to github.com:
+                            ActionTypeId:
+                                Category: Source
+                                Owner: AWS
+                                Provider: CodeCommit
+                                Version: 1
+                            OutputArtifacts:
+                                -   Name: turbo-banyan-source-artifact
+                            Configuration:
+                                BranchName: !Ref ParBranchName
+                                RepositoryName: !Ref ParRepositoryName
+                -   Name: Build
+                    Actions:
+                        -   Name: Build
+                            ActionTypeId:
+                                Category: Build
+                                Owner: AWS
+                                Provider: CodeBuild
+                                Version: 1
+                            InputArtifacts:
+                                -   Name: turbo-banyan-source-artifact
+                            OutputArtifacts:
+                                -   Name: turbo-banyan-build-artifact
+                            Configuration:
+                                ProjectName: !Ref ResCodeBuildProject
+                -   Name: Deploy
+                    Actions:
+                        -   Name: Deploy
+                            ActionTypeId:
+                                Category: Deploy
+                                Owner: AWS
+                                Provider: ECS
+                                Version: 1
+                            InputArtifacts:
+                                -   Name: turbo-banyan-build-artifact
+                            Configuration:
+                                ClusterName: !Ref ResECSCluster
+                                ServiceName: !Ref ResService
+                                # TODO: service name inside this file is hardcoded, but must depend on ParServiceName:
+                                FileName: "imagedefinitions.json"
+
+    # CLI: aws iam list-roles
+    # CLI: aws iam get-role --role-name turbo-banyan-role
+    # CLI: aws iam list-attached-role-policies --role-name turbo-banyan-role
+    ResCodeDeployIAMRole:
+        Type: AWS::IAM::Role
+        Properties:
+            RoleName: turbo-banyan-role
+            AssumeRolePolicyDocument:
+                Version: 2012-10-17
+                Statement:
+                    -   Effect: Allow
+                        Principal:
+                            Service:
+                                - codepipeline.amazonaws.com
+                        Action: 'sts:AssumeRole'
+            Path: /
+            ManagedPolicyArns:
+                - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+
+    # CLI: aws deploy list-applications
+    # CLI: aws deploy get-application --application-name turbo-banyan-application
+    ResTurboBanyanApplication:
+        Type: AWS::CodeDeploy::Application
+        Properties:
+            ApplicationName: turbo-banyan-application
+            ComputePlatform: Server
+
+    # TODO: it seems that until we start deploying via EC2 instances, this deployment group is useless:
+#    ResTurboBanyanDeploymentGroup:
+#        Type: AWS::CodeDeploy::DeploymentGroup
+#        Properties:
+#            ApplicationName: !Ref ResTurboBanyanApplication
+#            Ec2TagFilters:
+#                -   Key: DeploymentGroup
+#                    Type: KEY_AND_VALUE
+#                    Value: !Ref AWS::StackName
+#            ServiceRoleArn: !GetAtt ResCodeDeployIAMRole.Arn
+
+    ResEC2InstanceProfile:
+        Type: AWS::IAM::InstanceProfile
+        Properties:
+            Path: '/'
+            Roles:
+                - !Ref ResEC2InstanceIAMRole
+
+    ResEC2InstanceIAMRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    -   Effect: Allow
+                        Principal:
+                            Service:
+                                - ec2.amazonaws.com
+                        Action:
+                            - 'sts:AssumeRole'
+            Path: '/'
+            ManagedPolicyArns:
+                - 'arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy'
+
+    # TODO: until we start deploying via EC2 instances, this instance group is useless:
+    ResEC2Instance1:
+        Type: AWS::EC2::Instance
+        Properties:
+            IamInstanceProfile: !Ref ResEC2InstanceProfile
+            ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
+            InstanceType: 't2.micro'
+            AvailabilityZone:
+                Fn::Select:
+                    - 0
+                    -   Fn::GetAZs:
+                            Ref: AWS::Region
+            SecurityGroupIds:
+                # TODO: consider renaming it to something non-ECS
+                - !Ref ResECSSecurityGroup
+            UserData:
+                'Fn::Base64': !Sub |
+                    #!/bin/bash -x
+                    yum update -y && yum install -y ruby wget && wget https://aws-codedeploy-us-east-1.s3.amazonaws.com/latest/install && chmod +x ./install && ./install auto && service codedeploy-agent start
+                    /opt/aws/bin/cfn-signal --exit-code $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ResEC2Instance1
+            SubnetId: !Ref ResPublicSubnet1
+            Tags:
+                -   Key: DeploymentGroup
+                    Value: !Ref AWS::StackName
+                -   Key: Name
+                    Value: !Ref AWS::StackName
+        CreationPolicy:
+            ResourceSignal:
+                Count: 1
+                Timeout: PT10M
+
+Outputs: {}
+

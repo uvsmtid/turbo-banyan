@@ -1,0 +1,23 @@
+# Overrides for `local-dev` Maven and Spring profiles.
+spring:
+
+    datasource:
+
+        driverClassName: org.h2.Driver
+        url: 'jdbc:h2:mem:turbo_banyan_database'
+
+    jpa:
+        database: H2
+
+    h2:
+        console:
+            enabled: true
+            # Use: http://localhost:8080/h2
+            path: /h2
+            settings:
+                trace: true
+                web-allow-others: true
+
+logging:
+    level:
+        root: DEBUG

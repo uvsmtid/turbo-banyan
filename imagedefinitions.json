@@ -1,0 +1,6 @@
+[
+    {
+        "name": "turbo-banyan-student-service",
+        "imageUri": "docker.io/uvsmtid/turbo-banyan-student-service:latest"
+    }
+]

@@ -1,0 +1,31 @@
+# NOTE: see also some overrides for `local-dev` profile.
+spring:
+
+    main:
+        banner-mode: off
+
+    datasource:
+
+        driverClassName: com.mysql.cj.jdbc.Driver
+        # Use `SPRING_DATASOURCE_URL` env var to override:
+        url: 'jdbc:mysql://${MYSQL_HOST:localhost}:3306/turbo_banyan_database'
+        # Use `SPRING_DATASOURCE_USERNAME` env var to override:
+        username: turbo_banyan_username
+        # Use `SPRING_DATASOURCE_PASSWORD` env var to override:
+        password: turbo_banyan_password
+
+        # TODO: Consider adding schema migration tools (Flyway/Liquibase):
+        initialization-mode: always
+        schema: 'classpath:database/init-schema.sql'
+        data: 'classpath:database/init-data.sql'
+
+    jpa:
+        database: MYSQL
+        # Database is initialized via `init-schema.sql` instead:
+        generate-ddl: false
+        hibernate:
+            ddl-auto: validate
+
+logging:
+    level:
+        root: DEBUG
