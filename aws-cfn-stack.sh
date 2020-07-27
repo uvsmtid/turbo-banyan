@@ -53,6 +53,7 @@ case "${sub_command}" in
             --capabilities CAPABILITY_NAMED_IAM \
             --parameters \
                 ParameterKey=ParGitHubAccountName,ParameterValue="${GIT_HUB_ACCOUNT}" \
+                ParameterKey=ParGitHubTokenSecretName,ParameterValue="${GIT_HUB_API_TOKEN_SECRET_NAME}" \
 
     ;;
     update)
@@ -63,6 +64,7 @@ case "${sub_command}" in
             --capabilities CAPABILITY_NAMED_IAM \
             --parameters \
                 ParameterKey=ParGitHubAccountName,ParameterValue="${GIT_HUB_ACCOUNT}" \
+                ParameterKey=ParGitHubTokenSecretName,ParameterValue="${GIT_HUB_API_TOKEN_SECRET_NAME}" \
 
     ;;
     delete)

@@ -10,6 +10,9 @@ Parameters:
     ParGitHubAccountName:
         Description: Account name on github.com.
         Type: String
+    ParGitHubTokenSecretName:
+        Description: Account name on github.com.
+        Type: String
     ParRepositoryName:
         Description: repository name
         Type: String
@@ -596,6 +599,26 @@ Resources:
                     - LOCAL_CUSTOM_CACHE
             TimeoutInMinutes: 10
 
+    ResPipelineGitLabWebhook:
+        Type: AWS::CodePipeline::Webhook
+        Properties:
+            Authentication: GITHUB_HMAC
+            AuthenticationConfiguration:
+                SecretToken: !Join
+                    - ''
+                    -   - '{{resolve:secretsmanager:'
+                        - !Ref ParGitHubTokenSecretName
+                        - ':SecretString:token}}'
+            Filters:
+                -
+                    JsonPath: "$.ref"
+                    MatchEquals: refs/heads/{Branch}
+            TargetPipeline: !Ref ResCodePipeline
+            TargetAction: SourceAction
+            Name: ResPipelineGitLabWebhook
+            TargetPipelineVersion: !GetAtt ResCodePipeline.Version
+            RegisterWithThirdParty: true
+
     # CLI: aws codepipeline list-pipelines
     # CLI: aws codepipeline get-pipeline --name turbo-banyan-pipeline
     ResCodePipeline:
@@ -608,9 +631,9 @@ Resources:
                 Type: S3
             RoleArn: !GetAtt ResCodePipelineIAMRole.Arn
             Stages:
-                -   Name: Source
+                -   Name: SourceStage
                     Actions:
-                        -   Name: Source
+                        -   Name: SourceAction
                             ActionTypeId:
                                 Category: Source
                                 Owner: ThirdParty
@@ -622,12 +645,17 @@ Resources:
                                 Owner: !Ref ParGitHubAccountName
                                 Repo: !Ref ParRepositoryName
                                 Branch: !Ref ParBranchName
-                                # TODO: Use webhook notifications instead of polling:
-                                # https://docs.aws.amazon.com/codepipeline/latest/userguide/update-change-detection.html#update-change-detection-cfn-github
-                                PollForSourceChanges: true
-                -   Name: Build
+                                # Use webhook notifications instead of polling:
+                                # https://docs.aws.amazon.com/codepipeline/latest/userguide/update-change-detection.html
+                                PollForSourceChanges: false
+                                OAuthToken: !Join
+                                    - ''
+                                    -   - '{{resolve:secretsmanager:'
+                                        - !Ref ParGitHubTokenSecretName
+                                        - ':SecretString:token}}'
+                -   Name: BuildStage
                     Actions:
-                        -   Name: Build
+                        -   Name: BuildAction
                             ActionTypeId:
                                 Category: Build
                                 Owner: AWS
@@ -639,9 +667,9 @@ Resources:
                                 -   Name: turbo-banyan-build-artifact
                             Configuration:
                                 ProjectName: !Ref ResCodeBuildProject
-                -   Name: Deploy
+                -   Name: DeployStage
                     Actions:
-                        -   Name: Deploy
+                        -   Name: DeployAction
                             ActionTypeId:
                                 Category: Deploy
                                 Owner: AWS
