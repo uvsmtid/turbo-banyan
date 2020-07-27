@@ -7,6 +7,9 @@ Description: turbo-banyan-stack
 Metadata: {}
 
 Parameters:
+    ParGitHubAccountName:
+        Description: Account name on github.com.
+        Type: String
     ParRepositoryName:
         Description: repository name
         Type: String
@@ -608,17 +611,20 @@ Resources:
                 -   Name: Source
                     Actions:
                         -   Name: Source
-                            # TODO: convert to github.com:
                             ActionTypeId:
                                 Category: Source
-                                Owner: AWS
-                                Provider: CodeCommit
+                                Owner: ThirdParty
+                                Provider: GitHub
                                 Version: 1
                             OutputArtifacts:
                                 -   Name: turbo-banyan-source-artifact
                             Configuration:
-                                BranchName: !Ref ParBranchName
-                                RepositoryName: !Ref ParRepositoryName
+                                Owner: !Ref ParGitHubAccountName
+                                Repo: !Ref ParRepositoryName
+                                Branch: !Ref ParBranchName
+                                # TODO: Use webhook notifications instead of polling:
+                                # https://docs.aws.amazon.com/codepipeline/latest/userguide/update-change-detection.html#update-change-detection-cfn-github
+                                PollForSourceChanges: true
                 -   Name: Build
                     Actions:
                         -   Name: Build
