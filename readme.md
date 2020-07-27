@@ -59,8 +59,7 @@ The following steps explain and prepare parameters for `aws-cnf-stack.conf` conf
     > * `repo` - used for full control to read and pull artifacts from public and private repositories into a pipeline.
     > * `admin:repo_hook` - used for full control of repository hooks.
 
-    Follow these steps to get the token:
-    https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token
+    Create the token: https://github.com/settings/tokens
 
     Store token value into AWS secret (replace `0000000000000000000000000000000000000000`):
 
@@ -99,6 +98,8 @@ If started via sources, the service uses embedded in-memory database.
 ## **`B`**: Start via images ##
 
 If started via images, the service requires available MySQL instance with initialised database.
+
+> TODO: Consider managing both Docker instances via `docker-compose`.
 
 *   Start a database instance:
 
@@ -167,13 +168,13 @@ If started via images, the service requires available MySQL instance with initia
 
 *   Create the pipeline:
 
-    TODO: modify script to make create/update indistinguishable (call it `push`).
+    > TODO: Consider modifying script to merge `create` and `update` operations into one (e.g. `push`)
 
     ```sh
     ./aws-cfn-stack.sh create
     ```
 
-    Monitory provisioning of the pipeline - it may take several minutes:
+    Monitor provisioning of the pipeline - it may take several minutes:
 
     https://console.aws.amazon.com/cloudformation
 
@@ -186,9 +187,9 @@ If started via images, the service requires available MySQL instance with initia
 *   Push a commit (e.g. modify `readme.md`) to trigger the pipeline:
 
     ```sh
-    echo "" >> readme.md
-    git add .
-    git commit -m "Add empty new line to readme.md"
+    echo "" >> readme.md && \
+    git add . && \
+    git commit -m "Add empty new line to readme.md" && \
     git push origin
     ```
 
@@ -218,6 +219,20 @@ If started via images, the service requires available MySQL instance with initia
     ```sh
     ./aws-cfn-stack.sh delete
     ```
+
+## References ##
+
+*   The AWS Journey Part 2: Deploying a Docker Image with AWS CloudFormation
+
+    https://reflectoring.io/aws-cloudformation-deploy-docker-image/
+
+*   The AWS Journey Part 3: Connecting a Spring Boot Application to an RDS Instance with CloudFormation
+
+    https://reflectoring.io/aws-cloudformation-rds/
+
+*   Delivery Pipeline as Code: AWS CloudFormation and AWS CodePipeline
+
+    https://cloudonaut.io/delivery-pipeline-as-code-aws-cloudformation-codepipeline/
 
 ---
 
