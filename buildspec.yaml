@@ -19,25 +19,33 @@ phases:
             - echo before whoami
             - whoami
 
-            # TODO: clean up - for debug only
-            - echo before find
-            - find /root/.m2 -type d
+            - echo aws ecr
+            - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
 
     build:
         commands:
 
+            # TODO: clean up - it is used to debug local cache (for local Maven repo in this case):
             # show path to local repository:
             - echo before mvn:evaluate
-            - mvn --activate-profiles build-pipeline help:evaluate -Dexpression=settings.localRepository
+            # TODO: use `--activate-profiles build-pipeline`
+            - mvn help:evaluate -Dexpression=settings.localRepository
 
-            - echo before mvn test
-            - mvn --activate-profiles build-pipeline test
+            - echo before mvn package
+            # TODO: use `--activate-profiles build-pipeline`
+            - mvn -DIMAGE_REPO_NAME=$IMAGE_REPO_NAME -DIMAGE_TAG=$IMAGE_TAG package
+
+            - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
 
     post_build:
         commands:
 
-            - echo before mvn package
-            - mvn --activate-profiles build-pipeline package
+            - echo before docker push
+            - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+
+            # See:
+            # https://docs.aws.amazon.com/codepipeline/latest/userguide/ecs-cd-pipeline.html
+            - printf '[{"name":"turbo-banyan-student-service","imageUri":"%s"}]' $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG > imagedefinitions.json
 
 artifacts:
     files:

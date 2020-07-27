@@ -11,7 +11,10 @@ Parameters:
         Description: Account name on github.com.
         Type: String
     ParGitHubTokenSecretName:
-        Description: Account name on github.com.
+        Description: Personal token on github.com.
+        Type: String
+    ParAwsAccoundId:
+        Description: AWS account.
         Type: String
     ParRepositoryName:
         Description: repository name
@@ -621,8 +624,19 @@ Resources:
             Environment:
                 Type: LINUX_CONTAINER
                 ComputeType: BUILD_GENERAL1_SMALL
-                Image: aws/codebuild/java:openjdk-8
+                # Image: aws/codebuild/java:openjdk-8
+                Image: aws/codebuild/standard:4.0
                 PrivilegedMode: true
+                EnvironmentVariables:
+                    -   Name: AWS_DEFAULT_REGION
+                        Value: !Ref AWS::Region
+                    -   Name: AWS_ACCOUNT_ID
+                        Value: !Ref ParAwsAccoundId
+                    -   Name: IMAGE_REPO_NAME
+                        Value: !Ref ResRepository
+                    -   Name: IMAGE_TAG
+                        # TODO: Consider changing it to dynamic version drawn from Maven `pom.xml`:
+                        Value: latest
             Source:
                 Type: CODEPIPELINE
             Cache:
@@ -644,8 +658,7 @@ Resources:
                         - !Ref ParGitHubTokenSecretName
                         - ':SecretString:token}}'
             Filters:
-                -
-                    JsonPath: "$.ref"
+                -   JsonPath: "$.ref"
                     MatchEquals: refs/heads/{Branch}
             TargetPipeline: !Ref ResCodePipeline
             TargetAction: SourceAction

@@ -28,6 +28,7 @@
     <properties>
 
         <dockerfile-maven-version.version>1.4.13</dockerfile-maven-version.version>
+        <IMAGE_REPO_NAME>uvsmtid/${project.artifactId}</IMAGE_REPO_NAME>
 
     </properties>
 
@@ -70,12 +71,11 @@
                         </execution>
                     </executions>
                     <configuration>
-                        <repository>uvsmtid/${project.artifactId}</repository>
-                        <tag>${project.version}</tag>
+                        <repository>${IMAGE_REPO_NAME}</repository>
+                        <tag>${IMAGE_TAG}</tag>
                         <buildArgs>
                             <JAR_FILE>${project.build.finalName}.jar</JAR_FILE>
                         </buildArgs>
-                        <tag>${docker.tag}</tag>
                     </configuration>
                 </plugin>
 
@@ -121,7 +121,7 @@
                 <!--
                     The tag is `latest` by default.
                 -->
-                <docker.tag>latest</docker.tag>
+                <IMAGE_TAG>latest</IMAGE_TAG>
 
             </properties>
         </profile>
@@ -134,9 +134,10 @@
             <properties>
 
                 <!--
-                    During the build, use `${project.version} for `docker.tag` profile.
+                    During the build, use `${project.version} for `IMAGE_TAG` profile.
+                    TODO: this is currently disabled (to simplify `buildspec.yaml`)
                 -->
-                <docker.tag>${project.version}</docker.tag>
+                <IMAGE_TAG>${project.version}</IMAGE_TAG>
 
             </properties>
         </profile>
