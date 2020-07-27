@@ -6,9 +6,20 @@ This is a demo service with:
 *   MySQL backend database
 *   AWS CloudFormation to provision its CI/CD pipeline
 
-## Before the start ##
+There are three sections below (`A`, `B`, `C`) from trivial to complex:
+*   **`A`**: [local build and run (Maven)](#A)
+*   **`B`**: [local build and run (Docker)](#B)
+*   **`C`**: [spawning cloud CI/CD pipeline (AWS CloudFormation)](#C)
+
+You may want to jump directly to `C`.
+
+Depending on the section - Git, Java, Maven, Docker, AWS CLI, ... are assumed functional on the local machine.
+
+## Configuration before the start ##
 
 Ultimately, the demo is about CI/CD pipeline in AWS integrated with github.com.
+
+The following steps explain and prepare parameters for `aws-cnf-stack.conf` configuration file.
 
 *   Please stick with specific AWS region.
 
@@ -16,31 +27,53 @@ Ultimately, the demo is about CI/CD pipeline in AWS integrated with github.com.
     (preferred as template may lack the necessary mappings):
 
     ```sh
-    AWS_REGION=ap-southeast-1
+    AWS_REGION="ap-southeast-1"
     ```
 
     Obviously, use the IAM user with necessary permissions.
 
-*   Please create your own github.com account to be watched by the pipeline.
+*   Use your own github.com account to be watched by the pipeline.
 
-    Make *fork* of this repository first:
+    Make a *fork* of this repository:
 
     https://github.com/uvsmtid/turbo-banyan
 
     Your github.com account will subsequently be referenced via
-    this environment variable:
+    this environment variable (replace `uvsmtid`):
 
     ```sh
     GIT_HUB_ACCOUNT="uvsmtid"
     ```
 
-## Various service start methods ##
+*   Generate new API token on github.com and store it in AWS Secrets Manager.
 
-There are three sections below (`A`, `B`, `C`) from trivial to complex.
+    The name of the secret will be stored in this environment variable:
 
-You may want to jump directly to `C` with the CI/CD pipeline in AWS.
+    ```sh
+    GIT_HUB_API_TOKEN_SECRET_NAME="turbo-banyan-github-token"
+    ```
 
-Depending on the section - Git, Java, Maven, Docker, AWS CLI, ... are assumed functional on the local machine.
+    NOTE:
+    https://docs.aws.amazon.com/codepipeline/latest/userguide/update-change-detection.html
+    > The token and webhook require the following GitHub scopes:
+    > * `repo` - used for full control to read and pull artifacts from public and private repositories into a pipeline.
+    > * `admin:repo_hook` - used for full control of repository hooks.
+
+    Follow these steps to get the token:
+    https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token
+
+    Store token value into AWS secret (replace `0000000000000000000000000000000000000000`):
+
+    ```sh
+    # NOTE: this command has issues of being extremely slow to execute (up to few minutes).
+    aws \
+        secretsmanager \
+        create-secret \
+        --name "${GIT_HUB_API_TOKEN_SECRET_NAME}" \
+        --secret-string '{"token":"0000000000000000000000000000000000000000"}'
+    ```
+
+<a name="A"></a>
 
 ## **`A`**: Start via sources ##
 
@@ -60,6 +93,8 @@ If started via sources, the service uses embedded in-memory database.
     root_url="http://localhost:8080/"
     ./run-test-requests.sh "${root_url}"
     ```
+
+<a name="B"></a>
 
 ## **`B`**: Start via images ##
 
@@ -125,6 +160,8 @@ If started via images, the service requires available MySQL instance with initia
     root_url="http://localhost:8080/"
     ./run-test-requests.sh "${root_url}"
     ```
+
+<a name="C"></a>
 
 ## **`C`**: Start via CI/CD ##
 
