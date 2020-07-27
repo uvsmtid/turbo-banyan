@@ -6,14 +6,16 @@ This is a demo service with:
 *   MySQL backend database
 *   AWS CloudFormation to provision its CI/CD pipeline
 
-There are three sections below (`A`, `B`, `C`) from trivial to complex:
+Follow sections from trivial to complex:
 *   **`A`**: [local build and run (Maven)](#A)
 *   **`B`**: [local build and run (Docker)](#B)
-*   **`C`**: [spawning cloud CI/CD pipeline (AWS CloudFormation)](#C)
+*   **`C`**: [spawn cloud CI/CD pipeline (AWS CloudFormation)](#C)
 
 You may want to jump directly to `C`.
 
 Depending on the section - Git, Java, Maven, Docker, AWS CLI, ... are assumed functional on the local machine.
+
+<a name="config"></a>
 
 ## Configuration before the start ##
 
@@ -21,16 +23,21 @@ Ultimately, the demo is about CI/CD pipeline in AWS integrated with github.com.
 
 The following steps explain and prepare parameters for `aws-cnf-stack.conf` configuration file.
 
-*   Please stick with specific AWS region.
+*   Specify your AWS account and please stick with specific AWS region.
+
+    ```
+    AWS_ACCOUNT="243535590163"
+    ```
+
+    Obviously, the IAM user under this account
+    (for `aws` CLI configuration) needs necessary permissions.
 
     This demo was only tested in the following region
-    (preferred as template may lack the necessary mappings):
+    (preferred as `aws-cfn-stack.yaml` template may lack additional `Mappings`):
 
     ```sh
     AWS_REGION="ap-southeast-1"
     ```
-
-    Obviously, use the IAM user with necessary permissions.
 
 *   Use your own github.com account to be watched by the pipeline.
 
@@ -68,6 +75,7 @@ The following steps explain and prepare parameters for `aws-cnf-stack.conf` conf
     aws \
         secretsmanager \
         create-secret \
+        --region "${AWS_REGION}" \
         --name "${GIT_HUB_API_TOKEN_SECRET_NAME}" \
         --secret-string '{"token":"0000000000000000000000000000000000000000"}'
     ```
@@ -166,6 +174,8 @@ If started via images, the service requires available MySQL instance with initia
 
 ## **`C`**: Start via CI/CD ##
 
+Check [configuration before the start](#config).
+
 *   Create the pipeline:
 
     > TODO: Consider modifying script to merge `create` and `update` operations into one (e.g. `push`)
@@ -202,7 +212,9 @@ If started via images, the service requires available MySQL instance with initia
     Find DNS name of the relevant balancer in `DNSName` field:
 
     ```sh
-    aws elbv2 describe-load-balancers
+    aws elbv2 \
+        describe-load-balancers \
+        --region "${AWS_REGION}"
     ```
 
     Use the DNS name as hostname for the `root_url`:

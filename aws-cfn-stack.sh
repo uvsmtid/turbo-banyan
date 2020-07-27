@@ -42,16 +42,19 @@ case "${sub_command}" in
     validate)
         aws cloudformation \
             validate-template \
+            --region "${AWS_REGION}" \
             --template-body file://aws-cfn-stack.yaml \
 
     ;;
     create)
         aws cloudformation \
             create-stack \
+            --region "${AWS_REGION}" \
             --stack-name turbo-banyan-stack \
             --template-body file://aws-cfn-stack.yaml \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameters \
+                ParameterKey=ParAwsAccoundId,ParameterValue="${AWS_ACCOUNT}" \
                 ParameterKey=ParGitHubAccountName,ParameterValue="${GIT_HUB_ACCOUNT}" \
                 ParameterKey=ParGitHubTokenSecretName,ParameterValue="${GIT_HUB_API_TOKEN_SECRET_NAME}" \
 
@@ -59,10 +62,12 @@ case "${sub_command}" in
     update)
         aws cloudformation \
             update-stack \
+            --region "${AWS_REGION}" \
             --stack-name turbo-banyan-stack \
             --template-body file://aws-cfn-stack.yaml \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameters \
+                ParameterKey=ParAwsAccoundId,ParameterValue="${AWS_ACCOUNT}" \
                 ParameterKey=ParGitHubAccountName,ParameterValue="${GIT_HUB_ACCOUNT}" \
                 ParameterKey=ParGitHubTokenSecretName,ParameterValue="${GIT_HUB_API_TOKEN_SECRET_NAME}" \
 
@@ -70,6 +75,7 @@ case "${sub_command}" in
     delete)
         aws cloudformation \
             delete-stack \
+            --region "${AWS_REGION}" \
             --stack-name turbo-banyan-stack \
 
     ;;

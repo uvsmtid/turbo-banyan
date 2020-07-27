@@ -11,7 +11,10 @@ Parameters:
         Description: Account name on github.com.
         Type: String
     ParGitHubTokenSecretName:
-        Description: Account name on github.com.
+        Description: Personal token on github.com.
+        Type: String
+    ParAwsAccoundId:
+        Description: AWS account.
         Type: String
     ParRepositoryName:
         Description: repository name
@@ -480,11 +483,34 @@ Resources:
     #######################################################################################################################
     # pipeline
 
+    # TODO: Will we still need this when deploy uses image from repository?
     ResArtifactStore:
         Type: AWS::S3::Bucket
         Properties:
             VersioningConfiguration:
                 Status: Enabled
+
+    ResRepository:
+        Type: AWS::ECR::Repository
+        Properties:
+            RepositoryPolicyText:
+                Version: "2012-10-17"
+                # TODO: This may be redundant with direct statement on ResCodePipelineIAMRole:
+                Statement:
+                    -   Sid: AllowPushPull
+                        Effect: Allow
+                        Principal:
+                            Service:
+                                - codepipeline.amazonaws.com
+                                - codebuild.amazonaws.com
+                        Action:
+                            - ecr:GetDownloadUrlForLayer
+                            - ecr:BatchGetImage
+                            - ecr:BatchCheckLayerAvailability
+                            - ecr:PutImage
+                            - ecr:InitiateLayerUpload
+                            - ecr:UploadLayerPart
+                            - ecr:CompleteLayerUpload
 
     # TODO: Consider replacing by standard managed role AWSCodeDeployRoleForECS
     ResCodePipelineIAMRole:
@@ -501,6 +527,7 @@ Resources:
                         Action:
                             - 'sts:AssumeRole'
             Path: '/'
+            # TODO: This could be cleaned up - not sure if every single one is required:
             Policies:
                 -   PolicyName: logs
                     PolicyDocument:
@@ -575,6 +602,19 @@ Resources:
                                     - logs:PutLogEvents
                                 Resource: '*'
                                 Effect: Allow
+                            # TODO: This may be redundant with RepositoryPolicyText on ResRepository:
+                            -   Action:
+                                    - ecr:GetDownloadUrlForLayer
+                                    - ecr:BatchGetImage
+                                    - ecr:BatchCheckLayerAvailability
+                                    - ecr:PutImage
+                                    - ecr:InitiateLayerUpload
+                                    - ecr:UploadLayerPart
+                                    - ecr:CompleteLayerUpload
+                                Resource: '*'
+                                Effect: Allow
+            ManagedPolicyArns:
+                - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
 
     # CLI: aws codebuild list-projects
     ResCodeBuildProject:
@@ -587,8 +627,19 @@ Resources:
             Environment:
                 Type: LINUX_CONTAINER
                 ComputeType: BUILD_GENERAL1_SMALL
-                Image: aws/codebuild/java:openjdk-8
+                # Image: aws/codebuild/java:openjdk-8
+                Image: aws/codebuild/standard:4.0
                 PrivilegedMode: true
+                EnvironmentVariables:
+                    -   Name: AWS_DEFAULT_REGION
+                        Value: !Ref AWS::Region
+                    -   Name: AWS_ACCOUNT_ID
+                        Value: !Ref ParAwsAccoundId
+                    -   Name: IMAGE_REPO_NAME
+                        Value: !Ref ResRepository
+                    -   Name: IMAGE_TAG
+                        # TODO: Consider changing it to dynamic version drawn from Maven `pom.xml`:
+                        Value: latest
             Source:
                 Type: CODEPIPELINE
             Cache:
@@ -610,8 +661,7 @@ Resources:
                         - !Ref ParGitHubTokenSecretName
                         - ':SecretString:token}}'
             Filters:
-                -
-                    JsonPath: "$.ref"
+                -   JsonPath: "$.ref"
                     MatchEquals: refs/heads/{Branch}
             TargetPipeline: !Ref ResCodePipeline
             TargetAction: SourceAction
