@@ -30,6 +30,9 @@ function exit_trap {
 }
 trap exit_trap EXIT
 
+# Source configuration:
+source ./aws-cfn-stack.conf
+
 # AWS CLI must be:
 # *   Installed: https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html
 # *   Configured: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html
@@ -40,6 +43,7 @@ case "${sub_command}" in
         aws cloudformation \
             validate-template \
             --template-body file://aws-cfn-stack.yaml \
+
     ;;
     create)
         aws cloudformation \
@@ -47,6 +51,9 @@ case "${sub_command}" in
             --stack-name turbo-banyan-stack \
             --template-body file://aws-cfn-stack.yaml \
             --capabilities CAPABILITY_NAMED_IAM \
+            --parameters \
+                ParameterKey=ParGitHubAccountName,ParameterValue="${GIT_HUB_ACCOUNT}" \
+
     ;;
     update)
         aws cloudformation \
@@ -54,11 +61,15 @@ case "${sub_command}" in
             --stack-name turbo-banyan-stack \
             --template-body file://aws-cfn-stack.yaml \
             --capabilities CAPABILITY_NAMED_IAM \
+            --parameters \
+                ParameterKey=ParGitHubAccountName,ParameterValue="${GIT_HUB_ACCOUNT}" \
+
     ;;
     delete)
         aws cloudformation \
             delete-stack \
             --stack-name turbo-banyan-stack \
+
     ;;
     *)
         echo "ERROR: unknown sub command: ${sub_command}" >&2

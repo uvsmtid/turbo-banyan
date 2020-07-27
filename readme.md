@@ -16,7 +16,7 @@ Ultimately, the demo is about CI/CD pipeline in AWS integrated with github.com.
     (preferred as template may lack the necessary mappings):
 
     ```sh
-    AWS_REGION=ap-southeast-1
+    AWS_REGION="ap-southeast-1"
     ```
 
     Obviously, use the IAM user with necessary permissions.
