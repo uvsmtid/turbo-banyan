@@ -480,11 +480,34 @@ Resources:
     #######################################################################################################################
     # pipeline
 
+    # TODO: Will we still need this when deploy uses image from repository?
     ResArtifactStore:
         Type: AWS::S3::Bucket
         Properties:
             VersioningConfiguration:
                 Status: Enabled
+
+    ResRepository:
+        Type: AWS::ECR::Repository
+        Properties:
+            RepositoryPolicyText:
+                Version: "2012-10-17"
+                # TODO: This may be redundant with direct statement on ResCodePipelineIAMRole:
+                Statement:
+                    -   Sid: AllowPushPull
+                        Effect: Allow
+                        Principal:
+                            Service:
+                                - codepipeline.amazonaws.com
+                                - codebuild.amazonaws.com
+                        Action:
+                            - ecr:GetDownloadUrlForLayer
+                            - ecr:BatchGetImage
+                            - ecr:BatchCheckLayerAvailability
+                            - ecr:PutImage
+                            - ecr:InitiateLayerUpload
+                            - ecr:UploadLayerPart
+                            - ecr:CompleteLayerUpload
 
     # TODO: Consider replacing by standard managed role AWSCodeDeployRoleForECS
     ResCodePipelineIAMRole:
@@ -573,6 +596,17 @@ Resources:
                                     - logs:CreateLogGroup
                                     - logs:CreateLogStream
                                     - logs:PutLogEvents
+                                Resource: '*'
+                                Effect: Allow
+                            # TODO: This may be redundant with RepositoryPolicyText on ResRepository:
+                            -   Action:
+                                    - ecr:GetDownloadUrlForLayer
+                                    - ecr:BatchGetImage
+                                    - ecr:BatchCheckLayerAvailability
+                                    - ecr:PutImage
+                                    - ecr:InitiateLayerUpload
+                                    - ecr:UploadLayerPart
+                                    - ecr:CompleteLayerUpload
                                 Resource: '*'
                                 Effect: Allow
 
