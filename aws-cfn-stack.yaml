@@ -30,7 +30,7 @@ Parameters:
         Default: turbo-banyan-student-service
     ParImageUrl:
         Type: String
-        Description: The url of a docker image.
+        Description: The url of a docker image (used only during initial container creation).
         Default: 'docker.io/uvsmtid/turbo-banyan-student-service:latest'
     ParContainerCpu:
         Type: Number
@@ -72,7 +72,6 @@ Resources:
     ResDatabaseSecret:
         Type: AWS::SecretsManager::Secret
         Properties:
-            Name: !Ref ParDatabaseUsername
             GenerateSecretString:
                 SecretStringTemplate: !Join ['', ['{"username": "', !Ref 'ParDatabaseUsername' ,'"}']]
                 GenerateStringKey: "password"
@@ -173,7 +172,6 @@ Resources:
     ResLogGroup:
         Type: AWS::Logs::LogGroup
         Properties:
-            LogGroupName: !Ref ParServiceName
             RetentionInDays: 1
 
     ResTaskDefinition:
@@ -365,7 +363,6 @@ Resources:
         Type: AWS::RDS::DBSubnetGroup
         Properties:
             DBSubnetGroupDescription: Subnet group for the RDS instance
-            DBSubnetGroupName: ResDatabaseSubnetGroup
             SubnetIds:
                 - !Ref ResDatabasePrivateSubnet1
                 - !Ref ResDatabasePrivateSubnet2
@@ -492,7 +489,7 @@ Resources:
             Path: '/'
             # TODO: This could be cleaned up - not sure if every single one is required:
             Policies:
-                -   PolicyName: logs
+                -   PolicyName: pipeline-policy
                     PolicyDocument:
                         Version: '2012-10-17'
                         Statement:
@@ -582,7 +579,6 @@ Resources:
     ResBuildProject:
         Type: AWS::CodeBuild::Project
         Properties:
-            Name: turbo-banyan-build-project
             ServiceRole: !GetAtt ResCodePipelineIAMRole.Arn
             Artifacts:
                 Type: CODEPIPELINE
@@ -615,7 +611,6 @@ Resources:
     ResTestProject:
         Type: AWS::CodeBuild::Project
         Properties:
-            Name: turbo-banyan-test-project
             ServiceRole: !GetAtt ResCodePipelineIAMRole.Arn
             Artifacts:
                 Type: CODEPIPELINE
@@ -647,7 +642,6 @@ Resources:
                     MatchEquals: refs/heads/{Branch}
             TargetPipeline: !Ref ResCodePipeline
             TargetAction: SourceAction
-            Name: ResPipelineGitLabWebhook
             TargetPipelineVersion: !GetAtt ResCodePipeline.Version
             RegisterWithThirdParty: true
 

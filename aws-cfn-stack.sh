@@ -50,7 +50,7 @@ case "${sub_command}" in
         aws cloudformation \
             create-stack \
             --region "${AWS_REGION}" \
-            --stack-name turbo-banyan-stack \
+            --stack-name "${AWS_STACK_NAME}" \
             --template-body file://aws-cfn-stack.yaml \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameters \
@@ -63,7 +63,7 @@ case "${sub_command}" in
         aws cloudformation \
             update-stack \
             --region "${AWS_REGION}" \
-            --stack-name turbo-banyan-stack \
+            --stack-name "${AWS_STACK_NAME}" \
             --template-body file://aws-cfn-stack.yaml \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameters \
@@ -75,14 +75,14 @@ case "${sub_command}" in
         aws cloudformation \
             cancel-update-stack \
             --region "${AWS_REGION}" \
-            --stack-name turbo-banyan-stack \
+            --stack-name "${AWS_STACK_NAME}" \
 
     ;;
     delete)
         aws cloudformation \
             delete-stack \
             --region "${AWS_REGION}" \
-            --stack-name turbo-banyan-stack \
+            --stack-name "${AWS_STACK_NAME}" \
 
     ;;
     *)
