@@ -16,6 +16,8 @@ public class TestData {
         .builder()
         .firstName(STUDENT_1_FIRST_NAME)
         .lastName(STUDENT_1_LAST_NAME)
+        .className("G7")
+        .nationality("Germany")
         .build();
 
     public final static String STUDENT_2_FIRST_NAME = "Boris";
@@ -24,12 +26,35 @@ public class TestData {
         .builder()
         .firstName(STUDENT_2_FIRST_NAME)
         .lastName(STUDENT_2_LAST_NAME)
+        .className("G7")
+        .nationality("England")
+        .build();
+
+    public final static String STUDENT_3_FIRST_NAME = "Nicolas";
+    public final static String STUDENT_3_LAST_NAME = "Sarkozy";
+    public final static StudentEntity STUDENT_3 = StudentEntity
+        .builder()
+        .firstName(STUDENT_3_FIRST_NAME)
+        .lastName(STUDENT_3_LAST_NAME)
+        .className("G7")
+        .nationality("France")
+        .build();
+
+    public final static StudentEntity STUDENT_4 = StudentEntity
+        .builder()
+        .studentId(12345L)
+        .firstName("Alberto")
+        .lastName("Fernandez")
+        .className("88")
+        .nationality("Argentina")
         .build();
 
     public final static List<StudentEntity> ALL_STUDENTS = Collections.unmodifiableList(
         Arrays.asList(
             STUDENT_1,
-            STUDENT_2
+            STUDENT_2,
+            STUDENT_3,
+            STUDENT_4
         )
     );
 }

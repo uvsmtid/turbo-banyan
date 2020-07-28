@@ -31,7 +31,7 @@ function exit_trap {
 trap exit_trap EXIT
 
 # Perform HTTP request, ensure status code and print response on STDERR:
-function ensure_response {
+function ensure_response_on_request {
 
     # GIVEN
 
@@ -68,40 +68,48 @@ function ensure_response {
 #######################################
 # get by unknown id
 
-ensure_response 404 GET "${service_base_url}students/12345" \
+ensure_response_on_request 404 GET "${service_base_url}students/12345" \
 '
 {
     "firstName": "Muhammadu",
-    "lastName": "Buhari"
+    "lastName": "Buhari",
+    "class": "88",
+    "nationality": "Nigeria"
 }
 '
 
 #######################################
 # post new student
 
-ensure_response 200 POST "${service_base_url}students/" \
+ensure_response_on_request 200 POST "${service_base_url}students/" \
 '
 {
     "firstName": "Muhammadu",
-    "lastName": "Buhari"
+    "lastName": "Buhari",
+    "class": "88",
+    "nationality": "Nigeria"
 }
 '
 
-ensure_response 200 POST "${service_base_url}students/" \
+ensure_response_on_request 200 POST "${service_base_url}students/" \
 '
 {
     "firstName": "Lotay",
-    "lastName": "Tshering"
+    "lastName": "Tshering",
+    "class": "88",
+    "nationality": "Bhutan"
 }
 '
 
 #######################################
 # get all students
 
-ensure_response 200 GET "${service_base_url}students/" \
+ensure_response_on_request 200 GET "${service_base_url}students/" \
 '
 {
     "firstName": "Muhammadu",
-    "lastName": "Buhari"
+    "lastName": "Buhari",
+    "class": "88",
+    "nationality": "Nigeria"
 }
 '

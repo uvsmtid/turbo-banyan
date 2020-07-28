@@ -25,6 +25,7 @@ public class EndpointRoot {
     @Data
     @Builder
     private static class RootResponse {
+
         private final Instant timestamp;
         private final String instanceId;
         private final long requestNumber;

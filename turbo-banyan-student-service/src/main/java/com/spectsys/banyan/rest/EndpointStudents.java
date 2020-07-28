@@ -34,29 +34,34 @@ public class EndpointStudents {
 
     @GetMapping(STUDENTS_BASE_PATH + "{studentId}")
     public StudentEntity getStudent(
-        @PathVariable final long studentId
+        @PathVariable
+        final long studentId
     ) {
         return studentService.getStudent(studentId);
     }
 
     @PostMapping(STUDENTS_BASE_PATH)
     public StudentEntity addNewStudent(
-        @RequestBody final StudentEntity studentEntity
+        @RequestBody
+        final StudentEntity studentEntity
     ) {
         return studentService.addNewStudent(studentEntity);
     }
 
     @PutMapping(STUDENTS_BASE_PATH + "{studentId}")
     public StudentEntity updateStudent(
-        @RequestBody final StudentEntity studentEntity,
-        @PathVariable final long studentId
+        @RequestBody
+        final StudentEntity studentEntity,
+        @PathVariable
+        final long studentId
     ) {
         return studentService.updateStudent(studentEntity, studentId);
     }
 
     @DeleteMapping(STUDENTS_BASE_PATH + "{studentId}")
     void deleteStudent(
-        @PathVariable final long studentId
+        @PathVariable
+        final long studentId
     ) {
         studentService.deleteStudent(studentId);
     }

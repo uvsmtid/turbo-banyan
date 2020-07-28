@@ -19,12 +19,15 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.List;
+import java.util.UUID;
 
 import static com.spectsys.banyan.rest.MappingConstants.STUDENTS_BASE_PATH;
 import static com.spectsys.banyan.utils.JsonUtils.toLineJson;
 import static com.spectsys.banyan.utils.TestData.ALL_STUDENTS;
 import static com.spectsys.banyan.utils.TestData.STUDENT_1_LAST_NAME;
 import static com.spectsys.banyan.utils.TestData.STUDENT_2_LAST_NAME;
+import static com.spectsys.banyan.utils.TestData.STUDENT_3_FIRST_NAME;
+import static com.spectsys.banyan.utils.TestData.STUDENT_3_LAST_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -154,8 +157,10 @@ public class EndpointStudentsTest extends AbstractIntegratedTest {
 
         final StudentEntity givenStudent = StudentEntity
             .builder()
-            .firstName("Nicolas")
-            .lastName("Sarkozy")
+            .firstName(UUID.randomUUID().toString())
+            .lastName(UUID.randomUUID().toString())
+            .className(UUID.randomUUID().toString())
+            .nationality(UUID.randomUUID().toString())
             .build();
         log.info("givenStudent: {}", givenStudent);
 
@@ -221,8 +226,8 @@ public class EndpointStudentsTest extends AbstractIntegratedTest {
         assertEquals(1, byLastName.size());
         final StudentEntity givenStudent = byLastName.get(0)
             .toBuilder()
-            .firstName("Nicolas")
-            .lastName("Sarkozy")
+            .firstName(STUDENT_3_FIRST_NAME)
+            .lastName(STUDENT_3_LAST_NAME)
             .build();
         final long givenStudentId = givenStudent.getStudentId();
         log.info("givenStudent: {}", givenStudent);
@@ -294,8 +299,10 @@ public class EndpointStudentsTest extends AbstractIntegratedTest {
 
         final StudentEntity givenStudent = StudentEntity
             .builder()
-            .firstName("Nicolas")
-            .lastName("Sarkozy")
+            .firstName(UUID.randomUUID().toString())
+            .lastName(UUID.randomUUID().toString())
+            .className(UUID.randomUUID().toString())
+            .nationality(UUID.randomUUID().toString())
             .build();
         log.info("givenStudent: {}", givenStudent);
 
@@ -328,8 +335,8 @@ public class EndpointStudentsTest extends AbstractIntegratedTest {
         assertEquals(1, byLastName.size());
         final StudentEntity givenStudent = byLastName.get(0)
             .toBuilder()
-            .firstName("Nicolas")
-            .lastName("Sarkozy")
+            .firstName(STUDENT_3_FIRST_NAME)
+            .lastName(STUDENT_3_LAST_NAME)
             .build();
         final long givenStudentId = givenStudent.getStudentId();
         log.info("givenStudent: {}", givenStudent);
@@ -369,8 +376,10 @@ public class EndpointStudentsTest extends AbstractIntegratedTest {
 
         final StudentEntity givenStudent = StudentEntity
             .builder()
-            .firstName("Nicolas")
-            .lastName("Sarkozy")
+            .firstName(UUID.randomUUID().toString())
+            .lastName(UUID.randomUUID().toString())
+            .className(UUID.randomUUID().toString())
+            .nationality(UUID.randomUUID().toString())
             .build();
         log.info("givenStudent: {}", givenStudent);
 

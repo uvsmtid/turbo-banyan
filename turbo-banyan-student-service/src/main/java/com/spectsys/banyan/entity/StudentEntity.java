@@ -1,5 +1,6 @@
 package com.spectsys.banyan.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,6 +28,7 @@ public class StudentEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonProperty("id")
     private Long studentId;
 
     @NonNull
@@ -34,4 +36,11 @@ public class StudentEntity {
 
     @NonNull
     private String lastName;
+
+    @NonNull
+    @JsonProperty("class")
+    private String className;
+
+    @NonNull
+    private String nationality;
 }

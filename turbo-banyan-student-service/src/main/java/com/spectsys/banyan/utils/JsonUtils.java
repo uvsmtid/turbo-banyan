@@ -11,6 +11,7 @@ import java.io.IOException;
 
 @UtilityClass
 public class JsonUtils {
+
     private static final ObjectMapper OBJECT_MAPPER;
     private static final ObjectWriter OBJECT_LINE_WRITER;
     private static final ObjectWriter OBJECT_PRETTY_WRITER;
