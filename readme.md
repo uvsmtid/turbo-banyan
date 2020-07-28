@@ -101,6 +101,8 @@ If started via sources, the service uses embedded in-memory database.
     ./run-test-requests.sh "${root_url}"
     ```
 
+    Or use Swagger UI: http://localhost:8080/swagger-ui/
+
 <a name="B"></a>
 
 ## **`B`**: Start via images ##
@@ -170,6 +172,8 @@ If started via images, the service requires available MySQL instance with initia
     ./run-test-requests.sh "${root_url}"
     ```
 
+    Or use Swagger UI: http://localhost:8080/swagger-ui/
+
 <a name="C"></a>
 
 ## **`C`**: Start via CI/CD ##
@@ -225,6 +229,8 @@ Check [configuration before the start](#config).
     root_url="http://${load_balancer_dns_name}/"
     ./run-test-requests.sh "${root_url}"
     ```
+
+    Or use Swagger UI: http://${load_balancer_dns_name}/swagger-ui/
 
 ## Tear down CI/CD ##
 
