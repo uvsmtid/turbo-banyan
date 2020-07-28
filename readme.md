@@ -212,6 +212,8 @@ Check [configuration before the start](#config).
     Find DNS name of the relevant balancer in `DNSName` field:
 
     ```sh
+    source aws-cfn-stack.conf
+
     aws elbv2 \
         describe-load-balancers \
         --region "${AWS_REGION}"
