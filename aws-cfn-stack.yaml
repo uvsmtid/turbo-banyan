@@ -627,7 +627,6 @@ Resources:
             Environment:
                 Type: LINUX_CONTAINER
                 ComputeType: BUILD_GENERAL1_SMALL
-                # Image: aws/codebuild/java:openjdk-8
                 Image: aws/codebuild/standard:4.0
                 PrivilegedMode: true
                 EnvironmentVariables:
@@ -672,8 +671,6 @@ Resources:
     # CLI: aws codepipeline list-pipelines
     # CLI: aws codepipeline get-pipeline --name turbo-banyan-pipeline
     ResCodePipeline:
-        DependsOn:
-            - ResEC2Instance1
         Type: AWS::CodePipeline::Pipeline
         Properties:
             ArtifactStore:
@@ -730,100 +727,7 @@ Resources:
                             Configuration:
                                 ClusterName: !Ref ResECSCluster
                                 ServiceName: !Ref ResService
-                                # TODO: service name inside this file is hardcoded, but must depend on ParServiceName:
                                 FileName: "imagedefinitions.json"
-
-    # CLI: aws iam list-roles
-    # CLI: aws iam get-role --role-name turbo-banyan-role
-    # CLI: aws iam list-attached-role-policies --role-name turbo-banyan-role
-    ResCodeDeployIAMRole:
-        Type: AWS::IAM::Role
-        Properties:
-            RoleName: turbo-banyan-role
-            AssumeRolePolicyDocument:
-                Version: 2012-10-17
-                Statement:
-                    -   Effect: Allow
-                        Principal:
-                            Service:
-                                - codepipeline.amazonaws.com
-                        Action: 'sts:AssumeRole'
-            Path: /
-            ManagedPolicyArns:
-                - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
-
-    # CLI: aws deploy list-applications
-    # CLI: aws deploy get-application --application-name turbo-banyan-application
-    ResTurboBanyanApplication:
-        Type: AWS::CodeDeploy::Application
-        Properties:
-            ApplicationName: turbo-banyan-application
-            ComputePlatform: Server
-
-    # TODO: it seems that until we start deploying via EC2 instances, this deployment group is useless:
-#    ResTurboBanyanDeploymentGroup:
-#        Type: AWS::CodeDeploy::DeploymentGroup
-#        Properties:
-#            ApplicationName: !Ref ResTurboBanyanApplication
-#            Ec2TagFilters:
-#                -   Key: DeploymentGroup
-#                    Type: KEY_AND_VALUE
-#                    Value: !Ref AWS::StackName
-#            ServiceRoleArn: !GetAtt ResCodeDeployIAMRole.Arn
-
-    ResEC2InstanceProfile:
-        Type: AWS::IAM::InstanceProfile
-        Properties:
-            Path: '/'
-            Roles:
-                - !Ref ResEC2InstanceIAMRole
-
-    ResEC2InstanceIAMRole:
-        Type: AWS::IAM::Role
-        Properties:
-            AssumeRolePolicyDocument:
-                Version: '2012-10-17'
-                Statement:
-                    -   Effect: Allow
-                        Principal:
-                            Service:
-                                - ec2.amazonaws.com
-                        Action:
-                            - 'sts:AssumeRole'
-            Path: '/'
-            ManagedPolicyArns:
-                - 'arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy'
-
-    # TODO: until we start deploying via EC2 instances, this instance group is useless:
-    ResEC2Instance1:
-        Type: AWS::EC2::Instance
-        Properties:
-            IamInstanceProfile: !Ref ResEC2InstanceProfile
-            ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
-            InstanceType: 't2.micro'
-            AvailabilityZone:
-                Fn::Select:
-                    - 0
-                    -   Fn::GetAZs:
-                            Ref: AWS::Region
-            SecurityGroupIds:
-                # TODO: consider renaming it to something non-ECS
-                - !Ref ResECSSecurityGroup
-            UserData:
-                'Fn::Base64': !Sub |
-                    #!/bin/bash -x
-                    yum update -y && yum install -y ruby wget && wget https://aws-codedeploy-us-east-1.s3.amazonaws.com/latest/install && chmod +x ./install && ./install auto && service codedeploy-agent start
-                    /opt/aws/bin/cfn-signal --exit-code $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ResEC2Instance1
-            SubnetId: !Ref ResPublicSubnet1
-            Tags:
-                -   Key: DeploymentGroup
-                    Value: !Ref AWS::StackName
-                -   Key: Name
-                    Value: !Ref AWS::StackName
-        CreationPolicy:
-            ResourceSignal:
-                Count: 1
-                Timeout: PT10M
 
 Outputs: {}
 

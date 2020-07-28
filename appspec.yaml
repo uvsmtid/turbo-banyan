@@ -1,7 +1,0 @@
-# TODO: Is this required if we deploy via imagedefinitions.json?
-version: 0.0
-os: linux
-files:
-    -   source: ./turbo-banyan-student-service.jar
-        destination: /tmp
-      

@@ -2,6 +2,7 @@
 spring:
 
     main:
+
         banner-mode: off
 
     datasource:
@@ -20,12 +21,16 @@ spring:
         data: 'classpath:database/init-data.sql'
 
     jpa:
+
         database: MYSQL
+
         # Database is initialized via `init-schema.sql` instead:
         generate-ddl: false
         hibernate:
             ddl-auto: validate
 
+        open-in-view: false
+
 logging:
     level:
-        root: DEBUG
+        root: info

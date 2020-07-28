@@ -7,9 +7,11 @@ spring:
         url: 'jdbc:h2:mem:turbo_banyan_database'
 
     jpa:
+
         database: H2
 
     h2:
+
         console:
             enabled: true
             # Use: http://localhost:8080/h2
@@ -20,4 +22,4 @@ spring:
 
 logging:
     level:
-        root: DEBUG
+        root: info
