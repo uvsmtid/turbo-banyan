@@ -25,12 +25,7 @@ public class StudentServiceDefault implements StudentService {
 
     @Override
     public List<StudentEntity> getAllStudents() {
-        final List<StudentEntity> studentEntities = studentRepository.findAll();
-        if (studentEntities.isEmpty()) {
-            throw new NoSuchElementException(ERROR_NO_STUDENTS_FOUND);
-        } else {
-            return studentEntities;
-        }
+        return studentRepository.findAll();
     }
 
     @Override

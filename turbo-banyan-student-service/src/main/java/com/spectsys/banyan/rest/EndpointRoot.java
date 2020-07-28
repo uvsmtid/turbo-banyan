@@ -17,8 +17,7 @@ import static com.spectsys.banyan.rest.MappingConstants.ROOT_BASE_PATH;
  */
 @RestController
 @Slf4j
-// TODO: remove before prod release
-public class RestEndpointRoot {
+public class EndpointRoot {
 
     private final static String INSTANCE_ID = UUID.randomUUID().toString();
     private final static AtomicLong REQUEST_COUNTER = new AtomicLong(0);
@@ -32,6 +31,7 @@ public class RestEndpointRoot {
     }
 
     @RequestMapping(ROOT_BASE_PATH)
+    // TODO: remove before prod release
     public RootResponse root() {
         final RootResponse rootResponse = RootResponse
             .builder()

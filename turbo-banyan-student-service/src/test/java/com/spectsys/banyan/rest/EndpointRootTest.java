@@ -13,7 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @EnableAutoConfiguration
-public class RestEndpointRootTest extends AbstractIntegratedTest {
+public class EndpointRootTest extends AbstractIntegratedTest {
 
     @Test
     @SneakyThrows

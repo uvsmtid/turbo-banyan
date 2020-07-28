@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @EnableAutoConfiguration
 @AutoConfigureMockMvc
 @Slf4j
-public class RestEndpointStudentsTest extends AbstractIntegratedTest {
+public class EndpointStudentsTest extends AbstractIntegratedTest {
 
     @Autowired
     private StudentRepository studentRepository;
@@ -110,7 +110,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         // THEN
 
         resultActions
-            .andExpect(status().isNotFound())
+            .andExpect(status().isOk())
             .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON_VALUE))
             .andReturn();
     }
@@ -281,7 +281,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
 
     @Test
     @SneakyThrows
-    public void update_non_existing_user_to_fail() {
+    public void update_non_existing_user_and_fail() {
 
         // GIVEN
 

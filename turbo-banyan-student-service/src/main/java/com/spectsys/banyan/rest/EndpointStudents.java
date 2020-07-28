@@ -23,7 +23,7 @@ import static com.spectsys.banyan.rest.MappingConstants.STUDENTS_BASE_PATH;
     NotFoundAdvice.class
 })
 @Slf4j
-public class RestEndpointStudents {
+public class EndpointStudents {
 
     private final StudentService studentService;
 
