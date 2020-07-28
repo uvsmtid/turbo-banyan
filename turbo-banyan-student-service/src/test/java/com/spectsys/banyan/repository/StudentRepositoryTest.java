@@ -70,7 +70,7 @@ public class StudentRepositoryTest extends AbstractIntegratedTest {
 
         // WHEN
 
-        final List<StudentEntity> existingStudents = studentRepository.findByLastName(givenLastName);
+        final List<StudentEntity> existingStudents = studentRepository.fetchByLastName(givenLastName);
 
         // THEN
 

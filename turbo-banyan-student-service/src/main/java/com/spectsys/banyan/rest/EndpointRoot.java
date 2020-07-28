@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.spectsys.banyan.rest.MappingConstants.ROOT_BASE_PATH;
+import static com.spectsys.banyan.rest.MappingConstants.BASE_PATH_ROOT;
 
 /**
  * Basic response with instance id and request counter
@@ -31,7 +31,7 @@ public class EndpointRoot {
         private final long requestNumber;
     }
 
-    @RequestMapping(ROOT_BASE_PATH)
+    @RequestMapping(BASE_PATH_ROOT)
     // TODO: remove before prod release
     public RootResponse root() {
         final RootResponse rootResponse = RootResponse

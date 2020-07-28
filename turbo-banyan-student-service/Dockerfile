@@ -5,6 +5,7 @@ USER uvsmtid:uvsmtid
 
 VOLUME /tmp
 
+# TODO: use layers to deduplicate and reduce size
 COPY target/turbo-banyan-student-service.jar turbo-banyan-student-service.jar
 
 ENTRYPOINT [ "java" , "-jar" , "/turbo-banyan-student-service.jar" ]

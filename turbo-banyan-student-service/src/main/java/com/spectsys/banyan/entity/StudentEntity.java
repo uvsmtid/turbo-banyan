@@ -15,6 +15,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import static com.spectsys.banyan.rest.MappingConstants.PARAM_CLASS;
+import static com.spectsys.banyan.rest.MappingConstants.PARAM_ID;
+
 @Entity
 // yes - all constructors are required:
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -28,7 +31,7 @@ public class StudentEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonProperty("id")
+    @JsonProperty(PARAM_ID)
     private Long studentId;
 
     @NonNull
@@ -38,7 +41,7 @@ public class StudentEntity {
     private String lastName;
 
     @NonNull
-    @JsonProperty("class")
+    @JsonProperty(PARAM_CLASS)
     private String className;
 
     @NonNull

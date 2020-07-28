@@ -7,7 +7,7 @@ import org.junit.Test;
 import static com.spectsys.banyan.utils.JsonUtils.fromJson;
 import static com.spectsys.banyan.utils.JsonUtils.toPrettyJson;
 import static com.spectsys.banyan.utils.ResourceUtils.getFileAsStringFromResource;
-import static com.spectsys.banyan.utils.TestData.STUDENT_4;
+import static com.spectsys.banyan.utils.TestData.STUDENT_5;
 import static org.junit.Assert.assertEquals;
 
 public class StudentEntityTest {
@@ -28,7 +28,7 @@ public class StudentEntityTest {
 
         // THEN
 
-        final StudentEntity expectedStudent = STUDENT_4;
+        final StudentEntity expectedStudent = STUDENT_5;
 
         assertEquals(expectedStudent, actualStudent);
     }
@@ -39,7 +39,7 @@ public class StudentEntityTest {
 
         // GIVEN
 
-        final StudentEntity givenStudent = STUDENT_4;
+        final StudentEntity givenStudent = STUDENT_5;
         final String givenStudentJson = GIVEN_SUDENT_JSON;
 
         // WHEN

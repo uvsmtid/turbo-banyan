@@ -6,7 +6,16 @@ import java.util.List;
 
 public interface StudentService {
 
-    List<StudentEntity> getAllStudents();
+    /**
+     * Fetch students by criteria specified as non-null field values
+     */
+    List<StudentEntity> fetchStudents(
+        Long studentId,
+        String firstName,
+        String lastName,
+        String className,
+        String nationality
+    );
 
     StudentEntity getStudent(long studentId);
 
