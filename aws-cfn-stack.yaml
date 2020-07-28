@@ -109,21 +109,21 @@ Resources:
                                 Action:
                                     # Rules which allow ECS to attach network interfaces to instances
                                     # on your behalf in order for awsvpc networking mode to work right
-                                    - 'ec2:AttachNetworkInterface'
-                                    - 'ec2:CreateNetworkInterface'
-                                    - 'ec2:CreateNetworkInterfacePermission'
-                                    - 'ec2:DeleteNetworkInterface'
-                                    - 'ec2:DeleteNetworkInterfacePermission'
-                                    - 'ec2:Describe*'
-                                    - 'ec2:DetachNetworkInterface'
+                                    - ec2:AttachNetworkInterface
+                                    - ec2:CreateNetworkInterface
+                                    - ec2:CreateNetworkInterfacePermission
+                                    - ec2:DeleteNetworkInterface
+                                    - ec2:DeleteNetworkInterfacePermission
+                                    - ec2:Describe*
+                                    - ec2:DetachNetworkInterface
 
                                     # Rules which allow ECS to update load balancers on your behalf
                                     # with the information sabout how to send traffic to your containers
-                                    - 'elasticloadbalancing:DeregisterInstancesFromLoadBalancer'
-                                    - 'elasticloadbalancing:DeregisterTargets'
-                                    - 'elasticloadbalancing:Describe*'
-                                    - 'elasticloadbalancing:RegisterInstancesWithLoadBalancer'
-                                    - 'elasticloadbalancing:RegisterTargets'
+                                    - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
+                                    - elasticloadbalancing:DeregisterTargets
+                                    - elasticloadbalancing:Describe*
+                                    - elasticloadbalancing:RegisterInstancesWithLoadBalancer
+                                    - elasticloadbalancing:RegisterTargets
                                 Resource: '*'
 
     # TODO: Consider replacing by standard managed role
@@ -163,27 +163,12 @@ Resources:
             HealthCheckIntervalSeconds: 30
             HealthCheckPath: '/actuator/health'
             HealthCheckProtocol: HTTP
-            HealthCheckTimeoutSeconds: 5
             HealthyThresholdCount: 3
             UnhealthyThresholdCount: 3
             TargetType: ip
-            Name: !Ref ParServiceName
             Port: !Ref ParContainerPort
-            Protocol: HTTP
+            Protocol: TCP
             VpcId: !Ref ResVPC
-
-    ResLoadBalancerRule:
-        Type: AWS::ElasticLoadBalancingV2::ListenerRule
-        Properties:
-            Actions:
-                -   TargetGroupArn: !Ref ResTargetGroup
-                    Type: forward
-            Conditions:
-                -   Field: path-pattern
-                    Values:
-                        - '*'
-            ListenerArn: !Ref ResPublicLoadBalancerListener
-            Priority: 1
 
     ResLogGroup:
         Type: AWS::Logs::LogGroup
@@ -194,7 +179,6 @@ Resources:
     ResTaskDefinition:
         Type: AWS::ECS::TaskDefinition
         Properties:
-            Family: !Ref ParServiceName
             Cpu: !Ref ParContainerCpu
             Memory: !Ref ParContainerMemory
             NetworkMode: awsvpc
@@ -239,10 +223,9 @@ Resources:
                                     - ':SecretString:password}}'
 
     ResService:
+        DependsOn: ResPublicLoadBalancerListener
         Type: AWS::ECS::Service
-        DependsOn: ResLoadBalancerRule
         Properties:
-            ServiceName: !Ref ParServiceName
             Cluster: !Ref ResECSCluster
             LaunchType: FARGATE
             DeploymentConfiguration:
@@ -360,14 +343,11 @@ Resources:
     ResPublicLoadBalancer:
         Type: AWS::ElasticLoadBalancingV2::LoadBalancer
         Properties:
-            # TODO: do we need ALB or NLB?
-            Type: application
+            Type: network
             Scheme: internet-facing
             Subnets:
                 - !Ref ResPublicSubnet1
                 - !Ref ResPublicSubnet2
-            SecurityGroups:
-                - !Ref ResPublicLoadBalancerSecurityGroup
 
     ResPublicLoadBalancerListener:
         Type: AWS::ElasticLoadBalancingV2::Listener
@@ -379,7 +359,7 @@ Resources:
                     Type: forward
             LoadBalancerArn: !Ref ResPublicLoadBalancer
             Port: 80
-            Protocol: HTTP
+            Protocol: TCP
 
     ResDatabaseSubnetGroup:
         Type: AWS::RDS::DBSubnetGroup
@@ -433,30 +413,11 @@ Resources:
     #######################################################################################################################
     # network security
 
-    ResPublicLoadBalancerSecurityGroup:
-        Type: AWS::EC2::SecurityGroup
-        Properties:
-            GroupDescription: access to the internet-facing load balancer
-            VpcId: !Ref ResVPC
-            SecurityGroupIngress:
-                -   CidrIp: 0.0.0.0/0
-                    # all protocols:
-                    IpProtocol: -1
-
     ResECSSecurityGroup:
         Type: AWS::EC2::SecurityGroup
         Properties:
             GroupDescription: access to the ECS containers
             VpcId: !Ref ResVPC
-
-    ResECSSecurityGroupIngressFromPublicALB:
-        Type: AWS::EC2::SecurityGroupIngress
-        Properties:
-            Description: Ingress from the public ALB
-            GroupId: !Ref ResECSSecurityGroup
-            # all protocols:
-            IpProtocol: -1
-            SourceSecurityGroupId: !Ref ResPublicLoadBalancerSecurityGroup
 
     # TODO: Do we really need this?
     ResECSSecurityGroupIngressFromSelf:
