@@ -2,7 +2,7 @@
 
 # Wrapper script to create/update/delete CI/CD pipeline via AWS CloudFormation.
 # Usage:
-# ./aws-cfn-stack.sh [ validate | create | update | delete | cancel ]
+# ./aws-cfn-stack.sh [ validate | create | update | cancel | delete ]
 
 # Intentionally set excessive debug output and error detection:
 # *   Fail (stop) script on non-zero exit code from any command.
@@ -70,6 +70,12 @@ case "${sub_command}" in
                 ParameterKey=ParAwsAccoundId,ParameterValue="${AWS_ACCOUNT}" \
                 ParameterKey=ParGitHubAccountName,ParameterValue="${GIT_HUB_ACCOUNT}" \
                 ParameterKey=ParGitHubTokenSecretName,ParameterValue="${GIT_HUB_API_TOKEN_SECRET_NAME}" \
+    ;;
+    cancel)
+        aws cloudformation \
+            cancel-update-stack \
+            --region "${AWS_REGION}" \
+            --stack-name turbo-banyan-stack \
 
     ;;
     delete)

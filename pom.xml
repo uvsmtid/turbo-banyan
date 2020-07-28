@@ -135,7 +135,7 @@
 
                 <!--
                     During the build, use `${project.version} for `IMAGE_TAG` profile.
-                    TODO: this is currently disabled (to simplify `buildspec.yaml`)
+                    TODO: this is currently disabled (to simplify `build-spec.yaml`)
                 -->
                 <IMAGE_TAG>${project.version}</IMAGE_TAG>
 

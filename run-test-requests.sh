@@ -87,6 +87,14 @@ ensure_response 200 POST "${service_base_url}students/" \
 }
 '
 
+ensure_response 200 POST "${service_base_url}students/" \
+'
+{
+    "firstName": "Lotay",
+    "lastName": "Tshering"
+}
+'
+
 #######################################
 # get all students
 

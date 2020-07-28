@@ -2,7 +2,7 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: turbo-banyan-stack
+Description: Provision resourced to build, deploy, test `turbo-banyan-student-service` via AWS CodePipline.
 
 Metadata: {}
 
@@ -78,6 +78,8 @@ Resources:
                 GenerateStringKey: "password"
                 PasswordLength: 32
                 ExcludeCharacters: '"@/\'
+
+    # NOTE: Another secret is created manually and referenced via `ParGitHubTokenSecretName`.
 
     #######################################################################################################################
     # service cluster
@@ -616,11 +618,10 @@ Resources:
             ManagedPolicyArns:
                 - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
 
-    # CLI: aws codebuild list-projects
-    ResCodeBuildProject:
+    ResBuildProject:
         Type: AWS::CodeBuild::Project
         Properties:
-            Name: turbo-banyan-project
+            Name: turbo-banyan-build-project
             ServiceRole: !GetAtt ResCodePipelineIAMRole.Arn
             Artifacts:
                 Type: CODEPIPELINE
@@ -641,12 +642,33 @@ Resources:
                         Value: latest
             Source:
                 Type: CODEPIPELINE
+                BuildSpec: aws-pipeline/build-spec.yaml
             Cache:
                 Type: LOCAL
                 Modes:
                     - LOCAL_DOCKER_LAYER_CACHE
                     - LOCAL_SOURCE_CACHE
                     - LOCAL_CUSTOM_CACHE
+            TimeoutInMinutes: 10
+
+    ResTestProject:
+        Type: AWS::CodeBuild::Project
+        Properties:
+            Name: turbo-banyan-test-project
+            ServiceRole: !GetAtt ResCodePipelineIAMRole.Arn
+            Artifacts:
+                Type: CODEPIPELINE
+            Environment:
+                Type: LINUX_CONTAINER
+                ComputeType: BUILD_GENERAL1_SMALL
+                Image: aws/codebuild/standard:4.0
+                PrivilegedMode: false
+                EnvironmentVariables:
+                    -   Name: LB_DNS_NAME
+                        Value: !GetAtt ResPublicLoadBalancer.DNSName
+            Source:
+                Type: CODEPIPELINE
+                BuildSpec: aws-pipeline/test-spec.yaml
             TimeoutInMinutes: 10
 
     ResPipelineGitLabWebhook:
@@ -678,9 +700,12 @@ Resources:
                 Type: S3
             RoleArn: !GetAtt ResCodePipelineIAMRole.Arn
             Stages:
+
                 -   Name: SourceStage
                     Actions:
+
                         -   Name: SourceAction
+                            RunOrder: 1
                             ActionTypeId:
                                 Category: Source
                                 Owner: ThirdParty
@@ -700,9 +725,12 @@ Resources:
                                     -   - '{{resolve:secretsmanager:'
                                         - !Ref ParGitHubTokenSecretName
                                         - ':SecretString:token}}'
+
                 -   Name: BuildStage
                     Actions:
+
                         -   Name: BuildAction
+                            RunOrder: 1
                             ActionTypeId:
                                 Category: Build
                                 Owner: AWS
@@ -713,10 +741,14 @@ Resources:
                             OutputArtifacts:
                                 -   Name: turbo-banyan-build-artifact
                             Configuration:
-                                ProjectName: !Ref ResCodeBuildProject
+                                ProjectName: !Ref ResBuildProject
+
                 -   Name: DeployStage
+                    # See: https://docs.aws.amazon.com/codepipeline/latest/userguide/concepts-how-it-works.html#concepts-recommended-pipeline-method
                     Actions:
+
                         -   Name: DeployAction
+                            RunOrder: 1
                             ActionTypeId:
                                 Category: Deploy
                                 Owner: AWS
@@ -727,7 +759,19 @@ Resources:
                             Configuration:
                                 ClusterName: !Ref ResECSCluster
                                 ServiceName: !Ref ResService
-                                FileName: "imagedefinitions.json"
+                                FileName: imagedefinitions.json
+
+                        -   Name: TestAction
+                            RunOrder: 2
+                            ActionTypeId:
+                                Category: Test
+                                Owner: AWS
+                                Provider: CodeBuild
+                                Version: 1
+                            InputArtifacts:
+                                -   Name: turbo-banyan-source-artifact
+                            Configuration:
+                                ProjectName: !Ref ResTestProject
 
 Outputs: {}
 

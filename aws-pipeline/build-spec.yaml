@@ -49,9 +49,6 @@ phases:
 
 artifacts:
     files:
-        # TODO: clean up
-        #- target/turbo-banyan-student-service.jar
-        #- appspec.yaml
         - imagedefinitions.json
     discard-paths: yes
 
