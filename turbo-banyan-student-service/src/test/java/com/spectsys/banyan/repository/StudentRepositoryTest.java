@@ -70,7 +70,7 @@ public class StudentRepositoryTest extends AbstractIntegratedTest {
 
         // WHEN
 
-        final List<StudentEntity> existingStudents = studentRepository.findByLastName(givenLastName);
+        final List<StudentEntity> existingStudents = studentRepository.fetchByLastName(givenLastName);
 
         // THEN
 
@@ -97,6 +97,8 @@ public class StudentRepositoryTest extends AbstractIntegratedTest {
             .builder()
             .firstName(UUID.randomUUID().toString())
             .lastName(UUID.randomUUID().toString())
+            .className(UUID.randomUUID().toString())
+            .nationality(UUID.randomUUID().toString())
             .build();
         log.info("givenStudent: {}", givenStudent);
 

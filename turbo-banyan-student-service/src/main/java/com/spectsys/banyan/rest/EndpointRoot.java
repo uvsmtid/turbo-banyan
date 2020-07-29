@@ -10,15 +10,14 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.spectsys.banyan.rest.MappingConstants.ROOT_BASE_PATH;
+import static com.spectsys.banyan.rest.MappingConstants.BASE_PATH_ROOT;
 
 /**
  * Basic response with instance id and request counter
  */
 @RestController
 @Slf4j
-// TODO: remove before prod release
-public class RestEndpointRoot {
+public class EndpointRoot {
 
     private final static String INSTANCE_ID = UUID.randomUUID().toString();
     private final static AtomicLong REQUEST_COUNTER = new AtomicLong(0);
@@ -26,12 +25,14 @@ public class RestEndpointRoot {
     @Data
     @Builder
     private static class RootResponse {
+
         private final Instant timestamp;
         private final String instanceId;
         private final long requestNumber;
     }
 
-    @RequestMapping(ROOT_BASE_PATH)
+    @RequestMapping(BASE_PATH_ROOT)
+    // TODO: remove before prod release
     public RootResponse root() {
         final RootResponse rootResponse = RootResponse
             .builder()

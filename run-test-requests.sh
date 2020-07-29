@@ -31,7 +31,7 @@ function exit_trap {
 trap exit_trap EXIT
 
 # Perform HTTP request, ensure status code and print response on STDERR:
-function ensure_response {
+function ensure_status_code_on_request {
 
     # GIVEN
 
@@ -66,42 +66,49 @@ function ensure_response {
 }
 
 #######################################
-# get by unknown id
+# get by unknown id vs fetch by unknown id
 
-ensure_response 404 GET "${service_base_url}students/12345" \
+ensure_status_code_on_request 404 GET "${service_base_url}students/12345" \
 '
 {
     "firstName": "Muhammadu",
-    "lastName": "Buhari"
+    "lastName": "Buhari",
+    "class": "88",
+    "nationality": "Nigeria"
 }
 '
+
+ensure_status_code_on_request 200 GET "${service_base_url}fetchStudents?id=12345" ""
 
 #######################################
 # post new student
 
-ensure_response 200 POST "${service_base_url}students/" \
+ensure_status_code_on_request 200 POST "${service_base_url}students" \
 '
 {
     "firstName": "Muhammadu",
-    "lastName": "Buhari"
+    "lastName": "Buhari",
+    "class": "88",
+    "nationality": "Nigeria"
 }
 '
 
-ensure_response 200 POST "${service_base_url}students/" \
+ensure_status_code_on_request 200 POST "${service_base_url}students" \
 '
 {
     "firstName": "Lotay",
-    "lastName": "Tshering"
+    "lastName": "Tshering",
+    "class": "88",
+    "nationality": "Bhutan"
 }
 '
 
 #######################################
-# get all students
+# fetch students
 
-ensure_response 200 GET "${service_base_url}students/" \
-'
-{
-    "firstName": "Muhammadu",
-    "lastName": "Buhari"
-}
-'
+# all
+ensure_status_code_on_request 200 GET "${service_base_url}fetchStudents" ""
+# same class
+ensure_status_code_on_request 200 GET "${service_base_url}fetchStudents?class=88" ""
+# same class and first name
+ensure_status_code_on_request 200 GET "${service_base_url}fetchStudents?class=88&firstName=Lotay" ""

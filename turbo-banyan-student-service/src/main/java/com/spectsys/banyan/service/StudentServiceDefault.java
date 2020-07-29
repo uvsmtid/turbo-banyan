@@ -18,19 +18,25 @@ import static java.lang.String.format;
 @Slf4j
 public class StudentServiceDefault implements StudentService {
 
-    public static final String ERROR_NO_STUDENTS_FOUND = "no students found";
     public static final String ERROR_UNKNOWN_STUDENT_ID = "unknown student id [%s]";
 
     private final StudentRepository studentRepository;
 
     @Override
-    public List<StudentEntity> getAllStudents() {
-        final List<StudentEntity> studentEntities = studentRepository.findAll();
-        if (studentEntities.isEmpty()) {
-            throw new NoSuchElementException(ERROR_NO_STUDENTS_FOUND);
-        } else {
-            return studentEntities;
-        }
+    public List<StudentEntity> fetchStudents(
+        final Long studentId,
+        final String firstName,
+        final String lastName,
+        final String className,
+        final String nationality
+    ) {
+        return studentRepository.fetchByAny(
+            studentId,
+            firstName,
+            lastName,
+            className,
+            nationality
+        );
     }
 
     @Override

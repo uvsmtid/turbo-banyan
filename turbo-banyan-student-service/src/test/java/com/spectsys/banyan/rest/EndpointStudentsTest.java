@@ -19,13 +19,31 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.List;
+import java.util.UUID;
 
-import static com.spectsys.banyan.rest.MappingConstants.STUDENTS_BASE_PATH;
+import static com.spectsys.banyan.rest.MappingConstants.BASE_PATH_FETCH_STUDENTS;
+import static com.spectsys.banyan.rest.MappingConstants.BASE_PATH_STUDENTS;
+import static com.spectsys.banyan.rest.MappingConstants.PARAM_CLASS;
+import static com.spectsys.banyan.rest.MappingConstants.PARAM_FIRST_NAME;
 import static com.spectsys.banyan.utils.JsonUtils.toLineJson;
 import static com.spectsys.banyan.utils.TestData.ALL_STUDENTS;
+import static com.spectsys.banyan.utils.TestData.CLASS_A;
+import static com.spectsys.banyan.utils.TestData.CLASS_B;
+import static com.spectsys.banyan.utils.TestData.STUDENT_1;
 import static com.spectsys.banyan.utils.TestData.STUDENT_1_LAST_NAME;
+import static com.spectsys.banyan.utils.TestData.STUDENT_2;
 import static com.spectsys.banyan.utils.TestData.STUDENT_2_LAST_NAME;
+import static com.spectsys.banyan.utils.TestData.STUDENT_3;
+import static com.spectsys.banyan.utils.TestData.STUDENT_3_FIRST_NAME;
+import static com.spectsys.banyan.utils.TestData.STUDENT_3_LAST_NAME;
+import static com.spectsys.banyan.utils.TestData.STUDENT_5;
+import static com.spectsys.banyan.utils.TestData.STUDENT_5_6_FIRST_NAME;
+import static com.spectsys.banyan.utils.TestData.STUDENT_6;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -39,7 +57,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @EnableAutoConfiguration
 @AutoConfigureMockMvc
 @Slf4j
-public class RestEndpointStudentsTest extends AbstractIntegratedTest {
+public class EndpointStudentsTest extends AbstractIntegratedTest {
 
     @Autowired
     private StudentRepository studentRepository;
@@ -62,6 +80,78 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         }
     }
 
+    private StudentEntity getStudentByLastName(final StudentEntity se) {
+        final List<StudentEntity> studentEntities = studentRepository.fetchByLastName(se.getLastName());
+        // test data is supposed to be populated ensuring single user per last name:
+        assertTrue(studentEntities.size() <= 1);
+        return studentEntities.get(0);
+    }
+
+    @Test
+    @SneakyThrows
+    public void get_students_from_the_same_class() {
+
+        // GIVEN
+
+        Assert.assertFalse(studentRepository.findAll().isEmpty());
+
+        // WHEN
+
+        final ResultActions resultActions = mockMvc
+            .perform(
+                MockMvcRequestBuilders
+                    .get(BASE_PATH_FETCH_STUDENTS)
+                    .param(PARAM_CLASS, CLASS_A)
+                    .contentType(APPLICATION_JSON)
+                    .accept(APPLICATION_JSON)
+            );
+
+        // THEN
+
+        resultActions
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON_VALUE))
+            .andExpect(content().json(toLineJson(asList(
+                getStudentByLastName(STUDENT_1),
+                getStudentByLastName(STUDENT_2),
+                getStudentByLastName(STUDENT_3)
+            ))))
+            .andReturn();
+    }
+
+
+    @Test
+    @SneakyThrows
+    public void get_students_from_the_same_class_and_first_name() {
+
+        // GIVEN
+
+        Assert.assertFalse(studentRepository.findAll().isEmpty());
+
+        // WHEN
+
+        final ResultActions resultActions = mockMvc
+            .perform(
+                MockMvcRequestBuilders
+                    .get(BASE_PATH_FETCH_STUDENTS)
+                    .param(PARAM_CLASS, CLASS_B)
+                    .param(PARAM_FIRST_NAME, STUDENT_5_6_FIRST_NAME)
+                    .contentType(APPLICATION_JSON)
+                    .accept(APPLICATION_JSON)
+            );
+
+        // THEN
+
+        resultActions
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON_VALUE))
+            .andExpect(content().json(toLineJson(asList(
+                getStudentByLastName(STUDENT_5),
+                getStudentByLastName(STUDENT_6)
+            ))))
+            .andReturn();
+    }
+
     @Test
     @SneakyThrows
     public void get_all_students_in_non_empty_repository() {
@@ -75,7 +165,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         final ResultActions resultActions = mockMvc
             .perform(
                 MockMvcRequestBuilders
-                    .get(STUDENTS_BASE_PATH)
+                    .get(BASE_PATH_FETCH_STUDENTS)
                     .contentType(APPLICATION_JSON)
                     .accept(APPLICATION_JSON)
             );
@@ -85,6 +175,9 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         resultActions
             .andExpect(status().isOk())
             .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON_VALUE))
+            .andExpect(content().json(toLineJson(
+                ALL_STUDENTS.stream().map(this::getStudentByLastName).collect(toList())
+            )))
             .andReturn();
     }
 
@@ -102,7 +195,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         final ResultActions resultActions = mockMvc
             .perform(
                 MockMvcRequestBuilders
-                    .get(STUDENTS_BASE_PATH)
+                    .get(BASE_PATH_FETCH_STUDENTS)
                     .contentType(APPLICATION_JSON)
                     .accept(APPLICATION_JSON)
             );
@@ -110,8 +203,9 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         // THEN
 
         resultActions
-            .andExpect(status().isNotFound())
+            .andExpect(status().isOk())
             .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON_VALUE))
+            .andExpect(content().json(toLineJson(emptyList())))
             .andReturn();
     }
 
@@ -122,7 +216,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         // GIVEN
 
         // Retrieve student and its id via repository to query via REST:
-        final List<StudentEntity> byLastName = studentRepository.findByLastName(STUDENT_2_LAST_NAME);
+        final List<StudentEntity> byLastName = studentRepository.fetchByLastName(STUDENT_2_LAST_NAME);
         assertEquals(1, byLastName.size());
         final StudentEntity expectedStudent = byLastName.get(0);
         final long studentId = expectedStudent.getStudentId();
@@ -132,7 +226,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         final ResultActions resultActions = mockMvc
             .perform(
                 MockMvcRequestBuilders
-                    .get(STUDENTS_BASE_PATH + studentId)
+                    .get(BASE_PATH_STUDENTS + '/' + studentId)
                     .contentType(APPLICATION_JSON)
                     .accept(APPLICATION_JSON)
             );
@@ -154,8 +248,10 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
 
         final StudentEntity givenStudent = StudentEntity
             .builder()
-            .firstName("Nicolas")
-            .lastName("Sarkozy")
+            .firstName(UUID.randomUUID().toString())
+            .lastName(UUID.randomUUID().toString())
+            .className(UUID.randomUUID().toString())
+            .nationality(UUID.randomUUID().toString())
             .build();
         log.info("givenStudent: {}", givenStudent);
 
@@ -164,7 +260,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         final ResultActions postResultActions = mockMvc
             .perform(
                 MockMvcRequestBuilders
-                    .post(STUDENTS_BASE_PATH)
+                    .post(BASE_PATH_STUDENTS)
                     .contentType(APPLICATION_JSON)
                     .accept(APPLICATION_JSON)
                     .content(toLineJson(givenStudent))
@@ -197,7 +293,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         final ResultActions getResultActions = mockMvc
             .perform(
                 MockMvcRequestBuilders
-                    .get(STUDENTS_BASE_PATH + expectedStudent.getStudentId())
+                    .get(BASE_PATH_STUDENTS + '/' + expectedStudent.getStudentId())
                     .contentType(APPLICATION_JSON)
                     .accept(APPLICATION_JSON)
             );
@@ -217,12 +313,12 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
 
         // GIVEN
 
-        final List<StudentEntity> byLastName = studentRepository.findByLastName(STUDENT_1_LAST_NAME);
+        final List<StudentEntity> byLastName = studentRepository.fetchByLastName(STUDENT_1_LAST_NAME);
         assertEquals(1, byLastName.size());
         final StudentEntity givenStudent = byLastName.get(0)
             .toBuilder()
-            .firstName("Nicolas")
-            .lastName("Sarkozy")
+            .firstName(STUDENT_3_FIRST_NAME)
+            .lastName(STUDENT_3_LAST_NAME)
             .build();
         final long givenStudentId = givenStudent.getStudentId();
         log.info("givenStudent: {}", givenStudent);
@@ -232,7 +328,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         final ResultActions postResultActions = mockMvc
             .perform(
                 MockMvcRequestBuilders
-                    .put(STUDENTS_BASE_PATH + givenStudentId)
+                    .put(BASE_PATH_STUDENTS + '/' + givenStudentId)
                     .contentType(APPLICATION_JSON)
                     .accept(APPLICATION_JSON)
                     .content(toLineJson(givenStudent))
@@ -265,7 +361,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         final ResultActions getResultActions = mockMvc
             .perform(
                 MockMvcRequestBuilders
-                    .get(STUDENTS_BASE_PATH + expectedStudent.getStudentId())
+                    .get(BASE_PATH_STUDENTS + '/' + expectedStudent.getStudentId())
                     .contentType(APPLICATION_JSON)
                     .accept(APPLICATION_JSON)
             );
@@ -281,7 +377,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
 
     @Test
     @SneakyThrows
-    public void update_non_existing_user_to_fail() {
+    public void update_non_existing_user_and_fail() {
 
         // GIVEN
 
@@ -294,8 +390,10 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
 
         final StudentEntity givenStudent = StudentEntity
             .builder()
-            .firstName("Nicolas")
-            .lastName("Sarkozy")
+            .firstName(UUID.randomUUID().toString())
+            .lastName(UUID.randomUUID().toString())
+            .className(UUID.randomUUID().toString())
+            .nationality(UUID.randomUUID().toString())
             .build();
         log.info("givenStudent: {}", givenStudent);
 
@@ -304,7 +402,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         final ResultActions postResultActions = mockMvc
             .perform(
                 MockMvcRequestBuilders
-                    .put(STUDENTS_BASE_PATH + unknownStudentId)
+                    .put(BASE_PATH_STUDENTS + '/' + unknownStudentId)
                     .contentType(APPLICATION_JSON)
                     .accept(APPLICATION_JSON)
                     .content(toLineJson(givenStudent))
@@ -324,12 +422,12 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
 
         // GIVEN
 
-        final List<StudentEntity> byLastName = studentRepository.findByLastName(STUDENT_1_LAST_NAME);
+        final List<StudentEntity> byLastName = studentRepository.fetchByLastName(STUDENT_1_LAST_NAME);
         assertEquals(1, byLastName.size());
         final StudentEntity givenStudent = byLastName.get(0)
             .toBuilder()
-            .firstName("Nicolas")
-            .lastName("Sarkozy")
+            .firstName(STUDENT_3_FIRST_NAME)
+            .lastName(STUDENT_3_LAST_NAME)
             .build();
         final long givenStudentId = givenStudent.getStudentId();
         log.info("givenStudent: {}", givenStudent);
@@ -339,7 +437,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         final ResultActions postResultActions = mockMvc
             .perform(
                 MockMvcRequestBuilders
-                    .delete(STUDENTS_BASE_PATH + givenStudentId)
+                    .delete(BASE_PATH_STUDENTS + '/' + givenStudentId)
                     .contentType(APPLICATION_JSON)
                     .accept(APPLICATION_JSON)
                     .content(toLineJson(givenStudent))
@@ -369,8 +467,10 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
 
         final StudentEntity givenStudent = StudentEntity
             .builder()
-            .firstName("Nicolas")
-            .lastName("Sarkozy")
+            .firstName(UUID.randomUUID().toString())
+            .lastName(UUID.randomUUID().toString())
+            .className(UUID.randomUUID().toString())
+            .nationality(UUID.randomUUID().toString())
             .build();
         log.info("givenStudent: {}", givenStudent);
 
@@ -379,7 +479,7 @@ public class RestEndpointStudentsTest extends AbstractIntegratedTest {
         final ResultActions postResultActions = mockMvc
             .perform(
                 MockMvcRequestBuilders
-                    .delete(STUDENTS_BASE_PATH + unknownStudentId)
+                    .delete(BASE_PATH_STUDENTS + '/' + unknownStudentId)
                     .contentType(APPLICATION_JSON)
                     .accept(APPLICATION_JSON)
                     .content(toLineJson(givenStudent))
