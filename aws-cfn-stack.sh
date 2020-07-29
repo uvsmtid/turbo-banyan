@@ -57,6 +57,7 @@ case "${sub_command}" in
                 ParameterKey=ParAwsAccoundId,ParameterValue="${AWS_ACCOUNT}" \
                 ParameterKey=ParGitHubAccountName,ParameterValue="${GIT_HUB_ACCOUNT}" \
                 ParameterKey=ParGitHubTokenSecretName,ParameterValue="${GIT_HUB_API_TOKEN_SECRET_NAME}" \
+                ParameterKey=ParBranchName,ParameterValue="${BRANCH_NAME}" \
 
     ;;
     update)
@@ -70,6 +71,8 @@ case "${sub_command}" in
                 ParameterKey=ParAwsAccoundId,ParameterValue="${AWS_ACCOUNT}" \
                 ParameterKey=ParGitHubAccountName,ParameterValue="${GIT_HUB_ACCOUNT}" \
                 ParameterKey=ParGitHubTokenSecretName,ParameterValue="${GIT_HUB_API_TOKEN_SECRET_NAME}" \
+                ParameterKey=ParBranchName,ParameterValue="${BRANCH_NAME}" \
+
     ;;
     cancel)
         aws cloudformation \
