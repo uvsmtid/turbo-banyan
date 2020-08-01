@@ -10,7 +10,7 @@
     <parent>
         <artifactId>turbo-banyan</artifactId>
         <groupId>com.spectsys</groupId>
-        <version>0.0.0</version>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>turbo-banyan-student-service</artifactId>

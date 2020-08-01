@@ -17,7 +17,7 @@
 
     <groupId>com.spectsys</groupId>
     <artifactId>turbo-banyan</artifactId>
-    <version>0.0.0</version>
+    <version>0.0.1-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
