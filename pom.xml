@@ -27,6 +27,8 @@
 
     <properties>
 
+        <springfox.version>3.0.0</springfox.version>
+
         <dockerfile-maven-version.version>1.4.13</dockerfile-maven-version.version>
         <IMAGE_REPO_NAME>uvsmtid/${project.artifactId}</IMAGE_REPO_NAME>
 
@@ -47,6 +49,12 @@
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
                 <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.springfox</groupId>
+                <artifactId>springfox-boot-starter</artifactId>
+                <version>${springfox.version}</version>
             </dependency>
 
         </dependencies>

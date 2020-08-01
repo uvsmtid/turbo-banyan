@@ -3,7 +3,7 @@ package com.spectsys.banyan.rest;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
@@ -31,7 +31,7 @@ public class EndpointRoot {
         private final long requestNumber;
     }
 
-    @RequestMapping(BASE_PATH_ROOT)
+    @GetMapping(BASE_PATH_ROOT)
     // TODO: remove before prod release
     public RootResponse root() {
         final RootResponse rootResponse = RootResponse
@@ -44,3 +44,4 @@ public class EndpointRoot {
         return rootResponse;
     }
 }
+
